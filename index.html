@@ -1,32 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>QuickDrop SD</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuickDrop SD</title>
 
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            'primary-blue': '#2563EB',
-            'secondary-dark': '#1F2937',
-            'light-gray': '#F3F4F6',
-            'accent-green': '#10B981',
-            'accent-red': '#EF4444',
-          }
-        }
-      }
-    }
-  </script>
-</head>
-<body class="bg-light-gray font-sans antialiased text-secondary-dark">
-  <div id="root"></div>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              "primary-blue": "#2563EB",
+              "secondary-dark": "#1F2937",
+              "light-gray": "#F3F4F6",
+              "accent-green": "#10B981",
+              "accent-red": "#EF4444",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="bg-light-gray font-sans antialiased text-secondary-dark">
+    <div id="root"></div>
 
-  <!-- The compiled JavaScript Vite generates -->
-  <script type="module" src="/dist/assets/index.js"></script>
-</body>
+    <!-- IMPORTANT: point Vite to the SOURCE entry, NOT /dist -->
+    <script type="module" src="/index.tsx"></script>
+  </body>
 </html>
