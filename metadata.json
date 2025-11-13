@@ -1,0 +1,7 @@
+{
+  "name": "QuickDrop SD",
+  "description": "QuickDrop SD offers fast furniture delivery and assembly services in San Diego, with clear upfront pricing and optional add-ons.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
