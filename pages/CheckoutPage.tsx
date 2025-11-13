@@ -76,7 +76,7 @@ ${details.bookingItems.length > 0 ? details.bookingItems.map(item => `  - ${item
 We will notify you with further updates as your job progresses.
 You can track your order at any time using your Booking ID on our website.
 
-If you have any questions, please contact us at contact@quickdropsd.com.
+If you have any questions, please contact us at quickdropsd@gmail.com.
 
 Sincerely,
 The QuickDrop SD Team
