@@ -22,6 +22,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
   const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false); // Renamed from isModalOpen for clarity
   const [isVenmoInstructionsOpen, setIsVenmoInstructionsOpen] = useState(false); // New state for Venmo instructions modal
+  const [paymentErrorMessage, setPaymentErrorMessage] = useState<string | null>(null); // New state for specific payment errors
 
   useEffect(() => {
     // Ensure total price is up-to-date
@@ -32,6 +33,66 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     updateBookingDetails({ [name]: value });
+  };
+
+  const sendBookingConfirmationEmail = (details: typeof bookingDetails) => {
+    const subject = `QuickDrop SD Booking Confirmation - ID: ${details.bookingId}`;
+    const addOnsSummary = details.selectedAddOns.length > 0
+      ? `\n  Add-Ons:\n${details.selectedAddOns.map(ao => `    - ${ao.name} ${ao.quantity ? `(x${ao.quantity})` : ''}${ao.option ? ` (${ao.option})` : ''}: +$${ao.price.toFixed(2)}`).join('\n')}`
+      : '\n  Add-Ons: None';
+
+    const emailBody = `
+Dear Customer,
+
+Thank you for your booking with QuickDrop SD!
+
+Your delivery and assembly service is confirmed.
+
+Booking ID: ${details.bookingId}
+Total Price Paid: $${details.totalPrice.toFixed(2)}
+
+---
+**Booking Summary**
+Package: ${details.selectedPackage?.name} - $${details.selectedPackage?.basePrice.toFixed(2)}
+${addOnsSummary}
+
+Pickup Address: ${details.pickupAddress}
+Delivery Address: ${details.deliveryAddress}
+Requested Date: ${details.dateRequested}
+Time Window: ${details.timeWindow}
+
+Pickup Location Type: ${details.pickupLocationType}
+${details.pickupLocationType === PickupLocationType.STORE_RETAILER ? `Store Name: ${details.storeName}\n` : ''}
+Order Status: ${details.orderPaymentStatus}
+Order Confirmation Name: ${details.orderConfirmationName}
+Order/Receipt Number: ${details.orderReceiptNumber}
+Recipient Name: ${details.recipientName}
+
+Items to be Delivered:
+${details.bookingItems.length > 0 ? details.bookingItems.map(item => `  - ${item.name}${item.color ? ` (${item.color})` : ''}${item.size ? `, ${item.size}` : ''}${item.description ? ` - ${item.description}` : ''}`).join('\n') : '  No specific items listed.'}
+
+---
+
+We will notify you with further updates as your job progresses.
+You can track your order at any time using your Booking ID on our website.
+
+If you have any questions, please contact us at contact@quickdropsd.com.
+
+Sincerely,
+The QuickDrop SD Team
+`;
+
+    console.log(`--- SIMULATED EMAIL SENT ---`);
+    console.log(`To: Customer Email (not captured in this demo)`);
+    console.log(`Subject: ${subject}`);
+    console.log(emailBody);
+    console.log(`--- END SIMULATED EMAIL ---`);
+    // In a real application, you would make an API call to your backend here:
+    // fetch('/api/send-email', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ to: customerEmail, subject, body: emailBody })
+    // });
   };
 
   const handleSuccessfulPayment = () => {
@@ -46,34 +107,60 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
     updateBookingDetails(updatedDetails);
     setIsPaymentSuccess(true);
     setIsConfirmationModalOpen(true);
+    setPaymentErrorMessage(null); // Clear any previous error messages
+
+    // Simulate sending booking confirmation email
+    sendBookingConfirmationEmail(updatedDetails);
 
     // Save complete booking details to localStorage for tracking purposes
     localStorage.setItem(`booking_${newBookingId}`, JSON.stringify(updatedDetails));
   };
 
   const handleProcessPayment = async () => {
+    setPaymentErrorMessage(null); // Clear previous errors on new attempt
+
     if (!bookingDetails.selectedPackage) {
-      alert("Please select a package first.");
+      setPaymentErrorMessage("No package selected. Please go back to the home page.");
       onNavigate(Page.HOME);
       return;
     }
-    if (!bookingDetails.pickupAddress || !bookingDetails.deliveryAddress || !bookingDetails.dateRequested || !bookingDetails.timeWindow) {
-      alert("Please fill in all required delivery details.");
+    
+    // Specific validation for Pickup & Delivery addresses (date and time moved to HomePage)
+    if (!bookingDetails.pickupAddress.trim()) {
+      setPaymentErrorMessage("Please enter a valid pickup address on the home page.");
+      onNavigate(Page.HOME);
       return;
     }
-    // New validation for Step 2 details
+    if (!bookingDetails.deliveryAddress.trim()) {
+      setPaymentErrorMessage("Please enter a valid delivery address on the home page.");
+      onNavigate(Page.HOME);
+      return;
+    }
+    if (!bookingDetails.dateRequested) {
+      setPaymentErrorMessage("Please select a preferred date on the home page.");
+      onNavigate(Page.HOME);
+      return;
+    }
+    if (!bookingDetails.timeWindow) {
+      setPaymentErrorMessage("Please select a time window on the home page.");
+      onNavigate(Page.HOME);
+      return;
+    }
+
+
+    // New validation for Step 2 details (Item & Pickup Details)
     if (!bookingDetails.pickupLocationType || !bookingDetails.orderPaymentStatus || !bookingDetails.orderConfirmationName.trim() || !bookingDetails.orderReceiptNumber.trim() || !bookingDetails.recipientName.trim()) {
-      alert("Please complete all required item and pickup details.");
+      setPaymentErrorMessage("Please complete all required item and pickup details on the home page.");
       onNavigate(Page.HOME); // Navigate back to ensure they fill it
       return;
     }
     if (bookingDetails.pickupLocationType === PickupLocationType.STORE_RETAILER && !bookingDetails.storeName.trim()) {
-      alert("Please enter the store name for pickup.");
+      setPaymentErrorMessage("Please enter the store name for pickup on the home page.");
       onNavigate(Page.HOME);
       return;
     }
     if (bookingDetails.bookingItems.length === 0 || bookingDetails.bookingItems.some(item => !item.name.trim())) {
-      alert("Please add at least one item and ensure all item names are filled.");
+      setPaymentErrorMessage("Please add at least one item and ensure all item names are filled on the home page.");
       onNavigate(Page.HOME);
       return;
     }
@@ -93,12 +180,13 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
       handleSuccessfulPayment();
     } else {
       updateBookingDetails({ paymentStatus: PaymentStatus.FAILED });
-      alert("Payment failed. Please try again or use a different payment method.");
+      setPaymentErrorMessage("Credit card payment failed. Please check your card details or try Venmo.");
     }
     setIsProcessing(false);
   };
 
   const handleVenmoConfirmed = async () => {
+    setPaymentErrorMessage(null); // Clear previous errors on new attempt
     setIsVenmoInstructionsOpen(false); // Close instructions modal
     setIsProcessing(true); // Start processing for booking confirmation (simulation)
 
@@ -110,7 +198,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
         handleSuccessfulPayment();
     } else {
         updateBookingDetails({ paymentStatus: PaymentStatus.FAILED });
-        alert("Venmo payment confirmation failed or was not received. Please verify and try again.");
+        setPaymentErrorMessage("Venmo payment confirmation could not be verified. Please ensure you have sent the payment and try again.");
     }
     setIsProcessing(false);
   };
@@ -118,6 +206,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
   const closeConfirmationModalAndReset = () => {
     setIsConfirmationModalOpen(false);
     resetBooking(); // Clear booking details
+    setPaymentErrorMessage(null); // Clear error message when resetting
     onNavigate(Page.HOME); // Go back to home
   };
 
@@ -197,6 +286,22 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
               <p className="font-medium text-gray-700">Recipient Name:</p>
               <p className="text-secondary-dark">{bookingDetails.recipientName}</p>
             </div>
+            <div className="col-span-full">
+              <p className="font-medium text-gray-700">Pickup Address:</p>
+              <p className="text-secondary-dark">{bookingDetails.pickupAddress}</p>
+            </div>
+            <div className="col-span-full">
+              <p className="font-medium text-gray-700">Delivery Address:</p>
+              <p className="text-secondary-dark">{bookingDetails.deliveryAddress}</p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-700">Preferred Date:</p>
+              <p className="text-secondary-dark">{bookingDetails.dateRequested}</p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-700">Time Window:</p>
+              <p className="text-secondary-dark">{bookingDetails.timeWindow}</p>
+            </div>
           </div>
 
           {/* Items List Display */}
@@ -216,63 +321,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
             ) : (
               <p className="text-gray-600">No items specified.</p>
             )}
-          </div>
-
-          {/* Addresses and Schedule Inputs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-            <div className="col-span-full">
-              <label htmlFor="pickupAddress" className="block text-sm font-medium text-gray-700 mb-1">Pickup Address</label>
-              <input
-                type="text"
-                name="pickupAddress"
-                id="pickupAddress"
-                value={bookingDetails.pickupAddress}
-                onChange={handleInputChange}
-                required
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
-              />
-            </div>
-            <div className="col-span-full">
-              <label htmlFor="deliveryAddress" className="block text-sm font-medium text-gray-700 mb-1">Delivery Address</label>
-              <input
-                type="text"
-                name="deliveryAddress"
-                id="deliveryAddress"
-                value={bookingDetails.deliveryAddress}
-                onChange={handleInputChange}
-                required
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
-              />
-            </div>
-            <div>
-              <label htmlFor="dateRequested" className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
-              <input
-                type="date"
-                name="dateRequested"
-                id="dateRequested"
-                value={bookingDetails.dateRequested}
-                onChange={handleInputChange}
-                required
-                min={new Date().toISOString().split('T')[0]} // Min date is today
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
-              />
-            </div>
-            <div>
-              <label htmlFor="timeWindow" className="block text-sm font-medium text-gray-700 mb-1">Time Window</label>
-              <select
-                name="timeWindow"
-                id="timeWindow"
-                value={bookingDetails.timeWindow}
-                onChange={handleInputChange}
-                required
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue bg-white"
-              >
-                <option value="">Select a time window</option>
-                {TIME_WINDOWS.map(window => (
-                  <option key={window} value={window}>{window}</option>
-                ))}
-              </select>
-            </div>
           </div>
 
           <div className="mt-8">
@@ -326,10 +374,15 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
                 : `Pay with ${selectedPaymentMethod === PaymentMethod.STRIPE ? 'Stripe (Credit Card)' : 'Venmo'}`
               }
             </button>
+            {paymentErrorMessage && (
+              <p className="text-center text-accent-red mt-4 font-semibold" aria-live="assertive">
+                {paymentErrorMessage}
+              </p>
+            )}
             {isPaymentSuccess && (
               <p className="text-center text-accent-green mt-4 font-semibold" aria-live="assertive">Payment Successful! Your booking is confirmed.</p>
             )}
-            {bookingDetails.paymentStatus === PaymentStatus.FAILED && (
+            {bookingDetails.paymentStatus === PaymentStatus.FAILED && !paymentErrorMessage && ( // Only show generic if no specific message
               <p className="text-center text-accent-red mt-4 font-semibold" aria-live="assertive">Payment Failed. Please try again.</p>
             )}
           </div>
@@ -364,13 +417,13 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
         <p className="text-gray-700 mb-4">Thank you for your booking!</p>
         <p className="text-gray-700 mb-4">Your Booking ID: <span className="font-bold text-primary-blue">{bookingDetails.bookingId || 'N/A'}</span></p>
         <p className="text-gray-700 mb-4">We've received your payment of <span className="font-bold">${bookingDetails.totalPrice.toFixed(2)}</span>. Your service is scheduled for <span className="font-bold">{bookingDetails.dateRequested}</span> during the <span className="font-bold">{bookingDetails.timeWindow}</span> window.</p>
-        <p className="text-gray-700 mb-6">A confirmation email with all details will be sent shortly.</p>
+        <p className="text-gray-700 mb-6">A confirmation email with all details will be sent shortly (check console for simulated email).</p>
         <button onClick={closeConfirmationModalAndReset} className="w-full bg-primary-blue text-white py-2 rounded-md hover:bg-blue-700">
           Done
         </button>
       </Modal>
 
-      <Modal isOpen={isVenmoInstructionsOpen} onClose={() => setIsVenmoInstructionsOpen(false)} title="Pay with Venmo">
+      <Modal isOpen={isVenmoInstructionsOpen} onClose={() => {setIsVenmoInstructionsOpen(false); setPaymentErrorMessage(null);}} title="Pay with Venmo">
         <p className="text-gray-700 mb-4">
           To complete your booking, please send <span className="font-bold text-primary-blue">${bookingDetails.totalPrice.toFixed(2)}</span> to our Venmo account:
         </p>
@@ -383,10 +436,15 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
           Once you have sent the payment on Venmo, click "I have sent the payment" below to confirm your booking.
           Please note, your booking will only be confirmed after we verify the payment.
         </p>
+        {paymentErrorMessage && (
+          <p className="text-center text-accent-red mb-4 font-semibold" aria-live="assertive">
+            {paymentErrorMessage}
+          </p>
+        )}
         <button onClick={handleVenmoConfirmed} disabled={isProcessing} className="w-full bg-primary-blue text-white py-2 rounded-md hover:bg-blue-700">
           {isProcessing ? <LoadingSpinner message="Confirming..." /> : "I have sent the payment"}
         </button>
-        <button onClick={() => setIsVenmoInstructionsOpen(false)} className="mt-4 w-full bg-gray-300 text-secondary-dark py-2 rounded-md hover:bg-gray-400">
+        <button onClick={() => {setIsVenmoInstructionsOpen(false); setPaymentErrorMessage(null);}} className="mt-4 w-full bg-gray-300 text-secondary-dark py-2 rounded-md hover:bg-gray-400">
           Cancel Payment
         </button>
       </Modal>

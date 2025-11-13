@@ -8,8 +8,11 @@ import DriverApprovalPage from './pages/DriverApprovalPage';
 import CustomerApprovalPage from './pages/CustomerApprovalPage';
 import HowItWorksPage from './pages/HowItWorksPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
-import OrderTrackingPage from './pages/OrderTrackingPage'; // Import the new page
-import ContactPage from './pages/ContactPage'; // Import the new page
+import OrderTrackingPage from './pages/OrderTrackingPage';
+import ContactPage from './pages/ContactPage';
+import CancellationPolicyPage from './pages/CancellationPolicyPage'; // New import
+import RefundPolicyPage from './pages/RefundPolicyPage';         // New import
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';        // New import
 import { BookingProvider } from './context/BookingContext';
 import { Page } from './types';
 
@@ -41,10 +44,16 @@ function App() {
         return <HowItWorksPage onNavigate={handleNavigate} />;
       case Page.TERMS_OF_SERVICE:
         return <TermsOfServicePage onNavigate={handleNavigate} />;
-      case Page.ORDER_TRACKING: // New case for Order Tracking page
+      case Page.ORDER_TRACKING:
         return <OrderTrackingPage onNavigate={handleNavigate} />;
-      case Page.CONTACT: // New case for Contact page
+      case Page.CONTACT:
         return <ContactPage onNavigate={handleNavigate} />;
+      case Page.CANCELLATION_POLICY_PAGE: // New case
+        return <CancellationPolicyPage onNavigate={handleNavigate} />;
+      case Page.REFUND_POLICY_PAGE:       // New case
+        return <RefundPolicyPage onNavigate={handleNavigate} />;
+      case Page.PRIVACY_POLICY_PAGE:      // New case
+        return <PrivacyPolicyPage onNavigate={handleNavigate} />;
       default:
         return (
           <div className="container mx-auto px-4 py-16 text-center">

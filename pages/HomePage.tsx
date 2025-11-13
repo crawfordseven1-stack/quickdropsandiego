@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import PackageCard from '../components/PackageCard';
 import AddOnToggle from '../components/AddOnToggle';
-import { PACKAGES, ADD_ONS } from '../constants';
+import { PACKAGES, ADD_ONS, TIME_WINDOWS } from '../constants'; // Import TIME_WINDOWS
 import { Page, Package, PickupLocationType, OrderPaymentStatus, BookingItem } from '../types';
 import { useBooking } from '../context/BookingContext';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs for booking items
@@ -38,6 +38,11 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     updateBookingItem(id, { [field]: value });
   };
 
+  const handleBookingDetailsInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    updateBookingDetails({ [name]: value });
+  };
+
   // Validation for Step 2 fields
   const isStep2Complete = useMemo(() => {
     const { pickupLocationType, storeName, orderPaymentStatus, orderConfirmationName, orderReceiptNumber, recipientName, bookingItems } = bookingDetails;
@@ -63,12 +68,36 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     return true;
   }, [bookingDetails]);
 
+  // Validation for Step 4 fields (newly moved from CheckoutPage)
+  const isStep4Complete = useMemo(() => {
+    return bookingDetails.dateRequested.trim() !== '' && bookingDetails.timeWindow.trim() !== '';
+  }, [bookingDetails.dateRequested, bookingDetails.timeWindow]);
+
 
   const totalPrice = useMemo(() => calculateTotalPrice(), [calculateTotalPrice, bookingDetails.selectedPackage, bookingDetails.selectedAddOns]);
 
   useEffect(() => {
     updateBookingDetails({ totalPrice });
   }, [totalPrice, updateBookingDetails]);
+
+  // Scroll to Step 3 when Step 2 is complete
+  useEffect(() => {
+    if (bookingDetails.selectedPackage && isStep2Complete) {
+      setTimeout(() => {
+        document.getElementById('add-ons-section')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [bookingDetails.selectedPackage, isStep2Complete]);
+
+  // Scroll to Step 4 when Step 3 (Add-Ons) is complete
+  useEffect(() => {
+    if (bookingDetails.selectedPackage && isStep2Complete && bookingDetails.selectedAddOns) { // Add-ons are technically 'complete' when section is visible, and date/time is next
+      setTimeout(() => {
+        document.getElementById('schedule-delivery-section')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [bookingDetails.selectedPackage, isStep2Complete, bookingDetails.selectedAddOns]);
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -115,7 +144,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                     name="pickupLocationType"
                     value={PickupLocationType.STORE_RETAILER}
                     checked={bookingDetails.pickupLocationType === PickupLocationType.STORE_RETAILER}
-                    onChange={(e) => updateBookingDetails({ pickupLocationType: e.target.value as PickupLocationType })}
+                    onChange={handleBookingDetailsInputChange}
                     className="form-radio text-primary-blue h-5 w-5"
                   />
                   <span className="ml-2 text-gray-700">Store/Retailer</span>
@@ -126,7 +155,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                     name="pickupLocationType"
                     value={PickupLocationType.PRIVATE_RESIDENCE}
                     checked={bookingDetails.pickupLocationType === PickupLocationType.PRIVATE_RESIDENCE}
-                    onChange={(e) => updateBookingDetails({ pickupLocationType: e.target.value as PickupLocationType })}
+                    onChange={handleBookingDetailsInputChange}
                     className="form-radio text-primary-blue h-5 w-5"
                   />
                   <span className="ml-2 text-gray-700">Private Residence/Other</span>
@@ -140,8 +169,9 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 <input
                   type="text"
                   id="storeName"
+                  name="storeName"
                   value={bookingDetails.storeName}
-                  onChange={(e) => updateBookingDetails({ storeName: e.target.value })}
+                  onChange={handleBookingDetailsInputChange}
                   placeholder="e.g., IKEA, Living Spaces"
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
                   required
@@ -158,7 +188,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                     name="orderPaymentStatus"
                     value={OrderPaymentStatus.NEEDS_PAYMENT}
                     checked={bookingDetails.orderPaymentStatus === OrderPaymentStatus.NEEDS_PAYMENT}
-                    onChange={(e) => updateBookingDetails({ orderPaymentStatus: e.target.value as OrderPaymentStatus })}
+                    onChange={handleBookingDetailsInputChange}
                     className="form-radio text-primary-blue h-5 w-5"
                   />
                   <span className="ml-2 text-gray-700">Needs to be Paid For</span>
@@ -169,7 +199,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                     name="orderPaymentStatus"
                     value={OrderPaymentStatus.PRE_PAID}
                     checked={bookingDetails.orderPaymentStatus === OrderPaymentStatus.PRE_PAID}
-                    onChange={(e) => updateBookingDetails({ orderPaymentStatus: e.target.value as OrderPaymentStatus })}
+                    onChange={handleBookingDetailsInputChange}
                     className="form-radio text-primary-blue h-5 w-5"
                   />
                   <span className="ml-2 text-gray-700">Pre-Paid (Only Pickup Required)</span>
@@ -183,8 +213,9 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 <input
                   type="text"
                   id="orderConfirmationName"
+                  name="orderConfirmationName"
                   value={bookingDetails.orderConfirmationName}
-                  onChange={(e) => updateBookingDetails({ orderConfirmationName: e.target.value })}
+                  onChange={handleBookingDetailsInputChange}
                   placeholder="Name on order/seller"
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
                   required
@@ -195,8 +226,9 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 <input
                   type="text"
                   id="orderReceiptNumber"
+                  name="orderReceiptNumber"
                   value={bookingDetails.orderReceiptNumber}
-                  onChange={(e) => updateBookingDetails({ orderReceiptNumber: e.target.value })}
+                  onChange={handleBookingDetailsInputChange}
                   placeholder="Confirmation # or Receipt #"
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
                   required
@@ -209,8 +241,9 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               <input
                 type="text"
                 id="recipientName"
+                name="recipientName"
                 value={bookingDetails.recipientName}
-                onChange={(e) => updateBookingDetails({ recipientName: e.target.value })}
+                onChange={handleBookingDetailsInputChange}
                 placeholder="Name of person receiving delivery"
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
                 required
@@ -359,6 +392,70 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </section>
       )}
 
+      {/* Step 4: Schedule Your Delivery - Only visible after Step 3 completion (Add-Ons) */}
+      {bookingDetails.selectedPackage && isStep2Complete && (
+        <section id="schedule-delivery-section" className="mb-12 animate-fade-in-up bg-white p-6 rounded-lg shadow-md border border-gray-200">
+          <h3 className="text-2xl font-bold text-secondary-dark mb-6 text-center">Step 4: Schedule Your Delivery</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="col-span-full">
+              <label htmlFor="pickupAddress" className="block text-sm font-medium text-gray-700 mb-1">Pickup Address <span className="text-accent-red">*</span></label>
+              <input
+                type="text"
+                name="pickupAddress"
+                id="pickupAddress"
+                value={bookingDetails.pickupAddress}
+                onChange={handleBookingDetailsInputChange}
+                required
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
+                placeholder="e.g., 123 Main St, San Diego, CA"
+              />
+            </div>
+            <div className="col-span-full">
+              <label htmlFor="deliveryAddress" className="block text-sm font-medium text-gray-700 mb-1">Delivery Address <span className="text-accent-red">*</span></label>
+              <input
+                type="text"
+                name="deliveryAddress"
+                id="deliveryAddress"
+                value={bookingDetails.deliveryAddress}
+                onChange={handleBookingDetailsInputChange}
+                required
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
+                placeholder="e.g., 456 Elm Ave, San Diego, CA"
+              />
+            </div>
+            <div>
+              <label htmlFor="dateRequested" className="block text-sm font-medium text-gray-700 mb-1">Preferred Date <span className="text-accent-red">*</span></label>
+              <input
+                type="date"
+                name="dateRequested"
+                id="dateRequested"
+                value={bookingDetails.dateRequested}
+                onChange={handleBookingDetailsInputChange}
+                required
+                min={new Date().toISOString().split('T')[0]} // Min date is today
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
+              />
+            </div>
+            <div>
+              <label htmlFor="timeWindow" className="block text-sm font-medium text-gray-700 mb-1">Time Window <span className="text-accent-red">*</span></label>
+              <select
+                name="timeWindow"
+                id="timeWindow"
+                value={bookingDetails.timeWindow}
+                onChange={handleBookingDetailsInputChange}
+                required
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue bg-white"
+              >
+                <option value="">Select a time window</option>
+                {TIME_WINDOWS.map(window => (
+                  <option key={window} value={window}>{window}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Summary & Checkout Bar (Sticky) */}
       <div className="fixed bottom-0 left-0 right-0 bg-white shadow-xl py-4 px-4 sm:px-6 z-40 border-t-2 border-primary-blue">
         <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between">
@@ -376,10 +473,10 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             </span>
             <button
               onClick={() => onNavigate(Page.CHECKOUT)}
-              disabled={!bookingDetails.selectedPackage || !isStep2Complete}
+              disabled={!bookingDetails.selectedPackage || !isStep2Complete || !isStep4Complete}
               className={`
                 px-8 py-3 rounded-md text-lg font-semibold transition-colors duration-300
-                ${bookingDetails.selectedPackage && isStep2Complete
+                ${bookingDetails.selectedPackage && isStep2Complete && isStep4Complete
                   ? 'bg-accent-green text-white hover:bg-green-600 shadow-lg'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }
