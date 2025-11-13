@@ -168,7 +168,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
           </div>
 
           <h3 className="text-2xl font-semibold text-secondary-dark mb-4 mt-8">Pickup & Delivery Details</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          {/* Pickup Information Display */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-light-gray rounded-md">
             <div className="col-span-full">
               <p className="font-medium text-gray-700">Pickup Location Type:</p>
               <p className="text-secondary-dark font-semibold">{bookingDetails.pickupLocationType}</p>
@@ -195,26 +197,31 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
               <p className="font-medium text-gray-700">Recipient Name:</p>
               <p className="text-secondary-dark">{bookingDetails.recipientName}</p>
             </div>
-            <div className="col-span-full mt-4">
-              <h4 className="text-lg font-bold text-secondary-dark mb-2">Items:</h4>
-              {bookingDetails.bookingItems.length > 0 ? (
-                <ul className="list-disc list-inside text-gray-700 ml-4">
-                  {bookingDetails.bookingItems.map((item, index) => (
-                    <li key={item.id || index} className="mb-2">
-                      <p className="font-semibold">{item.name}</p>
-                      {item.color && <p className="text-sm">Color: {item.color}</p>}
-                      {item.size && <p className="text-sm">Size/Dimensions: {item.size}</p>}
-                      {item.description && <p className="text-sm">Notes: {item.description}</p>}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-600">No items specified.</p>
-              )}
-            </div>
+          </div>
 
-            <div className="col-span-full border-t pt-4 mt-4">
-              <label htmlFor="pickupAddress" className="block text-sm font-medium text-gray-700">Pickup Address</label>
+          {/* Items List Display */}
+          <div className="mb-6 p-4 bg-light-gray rounded-md">
+            <h4 className="text-xl font-bold text-secondary-dark mb-2">Items:</h4>
+            {bookingDetails.bookingItems.length > 0 ? (
+              <ul className="list-disc list-inside text-gray-700 ml-4">
+                {bookingDetails.bookingItems.map((item, index) => (
+                  <li key={item.id || index} className="mb-2">
+                    <p className="font-semibold">{item.name}</p>
+                    {item.color && <p className="text-sm">Color: {item.color}</p>}
+                    {item.size && <p className="text-sm">Size/Dimensions: {item.size}</p>}
+                    {item.description && <p className="text-sm">Notes: {item.description}</p>}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-600">No items specified.</p>
+            )}
+          </div>
+
+          {/* Addresses and Schedule Inputs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+            <div className="col-span-full">
+              <label htmlFor="pickupAddress" className="block text-sm font-medium text-gray-700 mb-1">Pickup Address</label>
               <input
                 type="text"
                 name="pickupAddress"
@@ -226,7 +233,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
               />
             </div>
             <div className="col-span-full">
-              <label htmlFor="deliveryAddress" className="block text-sm font-medium text-gray-700">Delivery Address</label>
+              <label htmlFor="deliveryAddress" className="block text-sm font-medium text-gray-700 mb-1">Delivery Address</label>
               <input
                 type="text"
                 name="deliveryAddress"
@@ -238,7 +245,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
               />
             </div>
             <div>
-              <label htmlFor="dateRequested" className="block text-sm font-medium text-gray-700">Preferred Date</label>
+              <label htmlFor="dateRequested" className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
               <input
                 type="date"
                 name="dateRequested"
@@ -251,7 +258,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
               />
             </div>
             <div>
-              <label htmlFor="timeWindow" className="block text-sm font-medium text-gray-700">Time Window</label>
+              <label htmlFor="timeWindow" className="block text-sm font-medium text-gray-700 mb-1">Time Window</label>
               <select
                 name="timeWindow"
                 id="timeWindow"
