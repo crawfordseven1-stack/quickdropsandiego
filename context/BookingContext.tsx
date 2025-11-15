@@ -36,6 +36,9 @@ const defaultBookingDetails: BookingDetails = {
   orderReceiptNumber: '',
   recipientName: '',
   bookingItems: [],
+  // New fields for customer contact
+  customerEmail: '',
+  customerPhone: '',
 };
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);

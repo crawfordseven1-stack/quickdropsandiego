@@ -18,7 +18,10 @@ declare global {
           PlacesServiceStatus: {
             OK: string;
             ZERO_RESULTS: string;
-            // Add other statuses if needed, e.g., INVALID_REQUEST, OVER_QUERY_LIMIT, REQUEST_DENIED, UNKNOWN_ERROR
+            INVALID_REQUEST: string;
+            OVER_QUERY_LIMIT: string;
+            REQUEST_DENIED: string;
+            UNKNOWN_ERROR: string;
           };
           AutocompletePrediction: {
             description: string;
@@ -79,6 +82,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
   const [deliverySuggestions, setDeliverySuggestions] = useState<AutocompletePrediction[]>([]);
   const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
   const [showDeliverySuggestions, setShowDeliverySuggestions] = useState(false);
+  const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null); // New state for API errors
 
   // Refs for suggestion lists to handle blur events correctly
   const pickupSuggestionsRef = useRef<HTMLUListElement>(null);
@@ -95,6 +99,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
       setPlacesService(new window.google.maps.places.PlacesService(document.createElement('div')));
     } else {
       console.warn("Google Maps Places API not loaded. Address auto-completion will be unavailable.");
+      setApiErrorMessage("Address auto-completion is unavailable. Please check your internet connection or enter addresses manually.");
     }
   }, []);
 
@@ -103,8 +108,11 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     type: 'pickup' | 'delivery',
     setSuggestions: React.Dispatch<React.SetStateAction<AutocompletePrediction[]>>
   ) => {
+    setApiErrorMessage(null); // Clear previous errors on new input
     if (!autocompleteService || !input) {
       setSuggestions([]);
+      if (type === 'pickup') setShowPickupSuggestions(false);
+      else setShowDeliverySuggestions(false);
       return;
     }
 
@@ -119,6 +127,27 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
           setSuggestions([]);
           if (type === 'pickup') setShowPickupSuggestions(false);
           else setShowDeliverySuggestions(false);
+
+          let errorMessage = "Could not fetch address suggestions. Please try again or enter the address manually.";
+          switch (status) {
+            case window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS:
+              errorMessage = "No address suggestions found. Please refine your input or enter the address manually.";
+              break;
+            case window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT:
+              errorMessage = "Address suggestion service is temporarily busy. Please try again in a moment.";
+              break;
+            case window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED:
+              errorMessage = "Address suggestion service denied your request. Please ensure all required permissions are set up correctly.";
+              break;
+            case window.google.maps.places.PlacesServiceStatus.INVALID_REQUEST:
+              errorMessage = "Invalid request for address suggestions. Please contact support if this persists.";
+              break;
+            case window.google.maps.places.PlacesServiceStatus.UNKNOWN_ERROR:
+              errorMessage = "An unknown error occurred with address suggestions. Please try again later.";
+              break;
+          }
+          setApiErrorMessage(errorMessage);
+          console.error(`Google Places Autocomplete error for ${type}: ${status}`);
         }
       }
     );
@@ -130,7 +159,12 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     type: 'pickup' | 'delivery',
     setSuggestions: React.Dispatch<React.SetStateAction<AutocompletePrediction[]>>
   ) => {
-    if (!placesService) return;
+    setApiErrorMessage(null); // Clear previous errors
+    if (!placesService) {
+      console.error("PlacesService not initialized.");
+      setApiErrorMessage("Address details service is not available. Please enter the address manually.");
+      return;
+    }
 
     placesService.getDetails({ placeId }, (place, status) => {
       if (status === window.google.maps.places.PlacesServiceStatus.OK && place && place.formatted_address) {
@@ -143,6 +177,25 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         }
         setSuggestions([]); // Clear suggestions after selection
       } else {
+        let errorMessage = "Could not get full address details. Please verify the address or enter it manually.";
+        switch (status) {
+          case window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS:
+            errorMessage = "No details found for the selected address. Please try another suggestion or enter manually.";
+            break;
+          case window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT:
+            errorMessage = "Address detail service is temporarily busy. Please try again in a moment.";
+            break;
+          case window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED:
+            errorMessage = "Address detail service denied your request. Please contact support if this persists.";
+            break;
+          case window.google.maps.places.PlacesServiceStatus.INVALID_REQUEST:
+            errorMessage = "Invalid request for address details. Please contact support if this persists.";
+            break;
+          case window.google.maps.places.PlacesServiceStatus.UNKNOWN_ERROR:
+            errorMessage = "An unknown error occurred fetching address details. Please try again later.";
+            break;
+        }
+        setApiErrorMessage(errorMessage);
         console.error("Error fetching place details:", status);
         // Fallback to description if details fail
         if (type === 'pickup') {
@@ -152,6 +205,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
           updateBookingDetails({ deliveryAddress: description });
           setShowDeliverySuggestions(false);
         }
+        setSuggestions([]); // Clear suggestions even on error
       }
     });
   }, [placesService, updateBookingDetails]);
@@ -159,6 +213,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
   const handleBookingDetailsInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     updateBookingDetails({ [name]: value });
+    setApiErrorMessage(null); // Clear API error message on user input
 
     // Trigger autocomplete for address fields
     if (name === 'pickupAddress') {
@@ -254,8 +309,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     return true;
   }, [bookingDetails]);
 
-  // Validation for Step 4 fields
-  const isStep4Complete = useMemo(() => {
+  // Validation for Step 5 fields (previously Step 4)
+  const isStep5Complete = useMemo(() => {
     const { serviceType, pickupAddress, deliveryAddress, dateRequested, timeWindow } = bookingDetails;
     if (!dateRequested.trim() || !timeWindow.trim() || !pickupAddress.trim()) {
       return false;
@@ -264,6 +319,13 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
       return false;
     }
     return true;
+  }, [bookingDetails]);
+
+  // Validation for new Step 6 fields
+  const isStep6Complete = useMemo(() => {
+    const { customerEmail, customerPhone } = bookingDetails;
+    // Simple validation for non-empty email and phone
+    return customerEmail.trim() !== '' && customerPhone.trim() !== '';
   }, [bookingDetails]);
 
 
@@ -282,14 +344,25 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     }
   }, [bookingDetails.selectedPackage, isStep2Complete]);
 
-  // Scroll to Step 4 when Step 3 (Add-Ons) is visible
+  // Scroll to Step 5 when Step 4 (Add-Ons) is visible
   useEffect(() => {
-    if (bookingDetails.selectedPackage && isStep2Complete) {
+    // Only scroll if add-ons are applicable and visible, or if there are no add-ons
+    const addOnsExistAndApplicable = applicableAddOns.length > 0;
+    if (bookingDetails.selectedPackage && isStep2Complete && ((addOnsExistAndApplicable) || (!addOnsExistAndApplicable && document.getElementById('add-ons-section')))) {
       setTimeout(() => {
         document.getElementById('schedule-delivery-section')?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     }
-  }, [bookingDetails.selectedPackage, isStep2Complete]);
+  }, [bookingDetails.selectedPackage, isStep2Complete, applicableAddOns.length]);
+
+  // Scroll to Step 6 when Step 5 is complete
+  useEffect(() => {
+    if (bookingDetails.selectedPackage && isStep2Complete && isStep5Complete) {
+      setTimeout(() => {
+        document.getElementById('contact-info-section')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [bookingDetails.selectedPackage, isStep2Complete, isStep5Complete]);
 
 
   return (
@@ -319,7 +392,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             onClick={() => handleServiceTypeChange(ServiceType.REMOVAL)}
             className={`px-6 sm:px-8 py-3 rounded-lg text-md sm:text-lg font-semibold transition-all duration-300 flex items-center gap-2 ${bookingDetails.serviceType === ServiceType.REMOVAL ? 'bg-accent-red text-white shadow-lg' : 'bg-white text-secondary-dark border border-gray-300 hover:bg-light-gray'}`}
           >
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.067-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.067-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
             Furniture Removal
           </button>
         </div>
@@ -476,6 +549,13 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
       {bookingDetails.selectedPackage && isStep2Complete && (
         <section id="schedule-delivery-section" className="mb-12 animate-fade-in-up bg-white p-6 rounded-lg shadow-md border border-gray-200">
           <h3 className="text-2xl font-bold text-secondary-dark mb-6 text-center">Step 5: Schedule Your {bookingDetails.serviceType === ServiceType.DELIVERY ? 'Delivery' : 'Removal'}</h3>
+          {apiErrorMessage && (
+            <div className="bg-accent-red/10 border border-accent-red text-accent-red p-3 rounded-md mb-4" role="alert">
+              <p className="font-semibold">Error:</p>
+              <p>{apiErrorMessage}</p>
+              <p className="text-sm mt-1">Please try again, or enter the address manually if the issue persists.</p>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="col-span-full relative">
               <label htmlFor="pickupAddress" className="block text-sm font-medium text-gray-700 mb-1">{bookingDetails.serviceType === ServiceType.DELIVERY ? 'Pickup Address' : 'Removal Address'} <span className="text-accent-red">*</span></label>
@@ -582,6 +662,44 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </section>
       )}
 
+      {/* Step 6: Your Contact Information */}
+      {bookingDetails.selectedPackage && isStep2Complete && isStep5Complete && (
+        <section id="contact-info-section" className="mb-12 animate-fade-in-up bg-white p-6 rounded-lg shadow-md border border-gray-200">
+          <h3 className="text-2xl font-bold text-secondary-dark mb-6 text-center">Step 6: Your Contact Information</h3>
+          <p className="text-gray-700 text-center mb-6">We'll use this to send your booking confirmation and important updates.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="customerEmail" className="block text-sm font-medium text-gray-700 mb-1">Email Address <span className="text-accent-red">*</span></label>
+              <input
+                type="email"
+                name="customerEmail"
+                id="customerEmail"
+                value={bookingDetails.customerEmail}
+                onChange={handleBookingDetailsInputChange}
+                required
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
+                placeholder="youremail@example.com"
+              />
+            </div>
+            <div>
+              <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-accent-red">*</span></label>
+              <input
+                type="tel" // Use type="tel" for phone numbers
+                name="customerPhone"
+                id="customerPhone"
+                value={bookingDetails.customerPhone}
+                onChange={handleBookingDetailsInputChange}
+                required
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
+                placeholder="e.g., (555) 123-4567"
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+
       {/* Summary & Checkout Bar (Sticky) */}
       <div className="fixed bottom-0 left-0 right-0 bg-white shadow-xl py-4 px-4 sm:px-6 z-40 border-t-2 border-primary-blue">
         <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between">
@@ -599,10 +717,10 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             </span>
             <button
               onClick={() => onNavigate(Page.CHECKOUT)}
-              disabled={!bookingDetails.selectedPackage || !isStep2Complete || !isStep4Complete}
+              disabled={!bookingDetails.selectedPackage || !isStep2Complete || !isStep5Complete || !isStep6Complete}
               className={`
                 px-8 py-3 rounded-md text-lg font-semibold transition-colors duration-300
-                ${bookingDetails.selectedPackage && isStep2Complete && isStep4Complete
+                ${bookingDetails.selectedPackage && isStep2Complete && isStep5Complete && isStep6Complete
                   ? 'bg-accent-green text-white hover:bg-green-600 shadow-lg'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }

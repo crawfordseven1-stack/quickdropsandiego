@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Page, BookingDetails, JobStatus, ProofOfDelivery } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { sendBookingConfirmationEmail, sendBookingConfirmationSMS } from '../utils/emailService'; // Import email and SMS services
 
 interface OrderTrackingPageProps {
   onNavigate: (page: Page) => void;
@@ -58,9 +59,13 @@ const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({ onNavigate }) => 
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
 
+  // Effect to load all booking IDs on component mount
+  // This useEffect and associated states (showAllOrders, allOrders) are removed
+  // for privacy reasons, as all bookings should not be visible to any user without authentication.
+
   const handleTrackOrder = async () => {
     if (!bookingIdInput.trim()) {
-      setMessage("Please enter a Booking ID.");
+      setMessage("Please enter a Booking ID to track your order.");
       setTrackedBookingDetails(null);
       setProofOfDelivery(null);
       return;
@@ -89,8 +94,27 @@ const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({ onNavigate }) => 
       }
     } else {
       setMessage("Booking ID not found. Please check the ID and try again.");
+      setTrackedBookingDetails(null); // Explicitly clear if not found
     }
     setIsLoading(false);
+  };
+
+  const handleResendEmail = (booking: BookingDetails) => {
+    if (booking.customerEmail && booking.bookingId) {
+      sendBookingConfirmationEmail(booking);
+      setMessage(`Simulated email re-sent for Booking ID: ${booking.bookingId}. Check console.`);
+    } else {
+      setMessage("Cannot resend email: Customer email or Booking ID is missing.");
+    }
+  };
+
+  const handleResendSMS = (booking: BookingDetails) => {
+    if (booking.customerPhone && booking.bookingId) {
+      sendBookingConfirmationSMS(booking.customerPhone, booking.bookingId);
+      setMessage(`Simulated SMS re-sent for Booking ID: ${booking.bookingId}. Check console.`);
+    } else {
+      setMessage("Cannot resend SMS: Customer phone or Booking ID is missing.");
+    }
   };
 
   const estimatedDeliveryTime = getEstimatedDeliveryTime(trackedBookingDetails, proofOfDelivery);
@@ -102,7 +126,7 @@ const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({ onNavigate }) => 
       </h2>
 
       <p className="text-lg text-gray-700 mb-8 text-center max-w-2xl mx-auto">
-        Enter your unique Booking ID to get real-time updates on the status of your delivery and assembly job.
+        Enter your unique Booking ID below to get real-time updates on the status of your order.
       </p>
 
       <div className="bg-white p-8 rounded-lg shadow-xl mb-8 border border-gray-200">
@@ -137,6 +161,8 @@ const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({ onNavigate }) => 
           </p>
         )}
 
+        {isLoading && <LoadingSpinner message="Loading order details..." />}
+
         {trackedBookingDetails && (
           <div className="mt-8 space-y-4 animate-fade-in-up">
             <h3 className="text-2xl font-bold text-secondary-dark mb-4">Job Details</h3>
@@ -167,10 +193,12 @@ const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({ onNavigate }) => 
                 <p className="font-semibold text-gray-700">Pickup Address:</p>
                 <p className="text-secondary-dark">{trackedBookingDetails.pickupAddress}</p>
               </div>
-              <div className="bg-light-gray p-4 rounded-md col-span-1 md:col-span-2">
-                <p className="font-semibold text-gray-700">Delivery Address:</p>
-                <p className="text-secondary-dark">{trackedBookingDetails.deliveryAddress}</p>
-              </div>
+              {trackedBookingDetails.serviceType === 'delivery' && (
+                <div className="bg-light-gray p-4 rounded-md col-span-1 md:col-span-2">
+                  <p className="font-semibold text-gray-700">Delivery Address:</p>
+                  <p className="text-secondary-dark">{trackedBookingDetails.deliveryAddress}</p>
+                </div>
+              )}
               <div className="bg-light-gray p-4 rounded-md">
                 <p className="font-semibold text-gray-700">Requested Date:</p>
                 <p className="text-secondary-dark">{trackedBookingDetails.dateRequested}</p>
@@ -178,6 +206,14 @@ const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({ onNavigate }) => 
               <div className="bg-light-gray p-4 rounded-md">
                 <p className="font-semibold text-gray-700">Time Window:</p>
                 <p className="text-secondary-dark">{trackedBookingDetails.timeWindow}</p>
+              </div>
+              <div className="bg-light-gray p-4 rounded-md">
+                <p className="font-semibold text-gray-700">Customer Email:</p>
+                <p className="text-secondary-dark">{trackedBookingDetails.customerEmail}</p>
+              </div>
+              <div className="bg-light-gray p-4 rounded-md">
+                <p className="font-semibold text-gray-700">Customer Phone:</p>
+                <p className="text-secondary-dark">{trackedBookingDetails.customerPhone}</p>
               </div>
             </div>
 
@@ -212,10 +248,25 @@ const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({ onNavigate }) => 
               </div>
             )}
 
+            <div className="flex flex-wrap gap-4 justify-center mt-8">
+              <button
+                onClick={() => handleResendEmail(trackedBookingDetails)}
+                className="bg-primary-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors duration-300 shadow-lg"
+              >
+                Resend Confirmation Email
+              </button>
+              <button
+                onClick={() => handleResendSMS(trackedBookingDetails)}
+                className="bg-accent-green text-white px-6 py-3 rounded-md font-semibold hover:bg-green-600 transition-colors duration-300 shadow-lg"
+              >
+                Resend Confirmation SMS
+              </button>
+            </div>
+
             <div className="text-center mt-8">
               <button
                 onClick={() => onNavigate(Page.HOME)}
-                className="bg-primary-blue text-white px-8 py-4 rounded-md text-xl font-semibold hover:bg-blue-700 transition-colors duration-300 shadow-lg"
+                className="bg-gray-500 text-white px-8 py-4 rounded-md text-xl font-semibold hover:bg-gray-600 transition-colors duration-300 shadow-lg"
               >
                 Back to Home
               </button>

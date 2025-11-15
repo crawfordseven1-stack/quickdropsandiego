@@ -86,6 +86,10 @@ export interface BookingDetails {
   orderReceiptNumber: string;
   recipientName: string;
   bookingItems: BookingItem[];
+
+  // New fields for customer contact
+  customerEmail: string;
+  customerPhone: string;
 }
 
 export enum PaymentStatus {
@@ -125,6 +129,8 @@ export interface ProofOfDelivery {
  *   ADD COLUMN order_confirmation_name VARCHAR(255);
  *   ADD COLUMN order_receipt_number VARCHAR(255);
  *   ADD COLUMN recipient_name VARCHAR(255);
+ *   ADD COLUMN customer_email VARCHAR(255);
+ *   ADD COLUMN customer_phone VARCHAR(20);
  *
  * CREATE NEW BookingItems Table:
  *   booking_item_id UUID PRIMARY KEY;
