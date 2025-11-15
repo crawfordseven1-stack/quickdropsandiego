@@ -1,6 +1,6 @@
 // context/BookingContext.tsx
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { Package, AddOn, SelectedAddOn, BookingDetails, PaymentStatus, JobStatus, PickupLocationType, OrderPaymentStatus, BookingItem } from '../types';
+import { Package, AddOn, SelectedAddOn, BookingDetails, PaymentStatus, JobStatus, PickupLocationType, OrderPaymentStatus, BookingItem, ServiceType } from '../types';
 // Fix: Import PACKAGES and ADD_ONS from constants.ts
 import { PACKAGES, ADD_ONS, OLD_FURNITURE_REMOVAL_OPTIONS } from '../constants';
 
@@ -18,6 +18,7 @@ interface BookingContextType {
 }
 
 const defaultBookingDetails: BookingDetails = {
+  serviceType: ServiceType.DELIVERY,
   selectedPackage: null,
   selectedAddOns: [],
   pickupAddress: '',
@@ -94,7 +95,17 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [bookingDetails.selectedPackage, bookingDetails.selectedAddOns]);
 
   const updateBookingDetails = useCallback((details: Partial<BookingDetails>) => {
-    setBookingDetails((prev) => ({ ...prev, ...details }));
+    setBookingDetails((prev) => {
+      const newState = { ...prev, ...details };
+
+      // If serviceType is changing, reset the package and incompatible add-ons
+      if (details.serviceType && details.serviceType !== prev.serviceType) {
+        newState.selectedPackage = null;
+        newState.selectedAddOns = [];
+      }
+
+      return newState;
+    });
   }, []);
 
   const selectPackage = useCallback((pkg: Package) => {

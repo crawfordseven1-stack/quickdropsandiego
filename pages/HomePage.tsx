@@ -2,8 +2,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import PackageCard from '../components/PackageCard';
 import AddOnToggle from '../components/AddOnToggle';
-import { PACKAGES, ADD_ONS, TIME_WINDOWS } from '../constants'; // Import TIME_WINDOWS
-import { Page, Package, PickupLocationType, OrderPaymentStatus, BookingItem } from '../types';
+import { PACKAGES, ADD_ONS, TIME_WINDOWS, REMOVAL_PACKAGES } from '../constants'; // Import TIME_WINDOWS and REMOVAL_PACKAGES
+import { Page, Package, PickupLocationType, OrderPaymentStatus, BookingItem, ServiceType } from '../types';
 import { useBooking } from '../context/BookingContext';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs for booking items
 
@@ -16,6 +16,21 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
   // Local state for temporary item input before adding to context
   const [newItem, setNewItem] = useState<Omit<BookingItem, 'id'>>({ name: '', color: '', size: '', description: '' });
+
+  const handleServiceTypeChange = (serviceType: ServiceType) => {
+    updateBookingDetails({ serviceType });
+  };
+
+  const handleBookRemovalShortcut = () => {
+    updateBookingDetails({ serviceType: ServiceType.REMOVAL });
+    setTimeout(() => {
+      document.getElementById('package-selection-section')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  const currentPackages = bookingDetails.serviceType === ServiceType.DELIVERY ? PACKAGES : REMOVAL_PACKAGES;
+  const applicableAddOns = useMemo(() => ADD_ONS.filter(addOn => addOn.applicableServices?.includes(bookingDetails.serviceType)), [bookingDetails.serviceType]);
+
 
   const handlePackageSelect = (pkg: Package) => {
     selectPackage(pkg);
@@ -45,17 +60,25 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
   // Validation for Step 2 fields
   const isStep2Complete = useMemo(() => {
-    const { pickupLocationType, storeName, orderPaymentStatus, orderConfirmationName, orderReceiptNumber, recipientName, bookingItems } = bookingDetails;
+    const { serviceType, pickupLocationType, storeName, orderPaymentStatus, orderConfirmationName, orderReceiptNumber, recipientName, bookingItems } = bookingDetails;
 
-    // Validate pickup details
-    if (!pickupLocationType || !orderPaymentStatus || !orderConfirmationName.trim() || !orderReceiptNumber.trim() || !recipientName.trim()) {
-      return false;
-    }
-    if (pickupLocationType === PickupLocationType.STORE_RETAILER && !storeName.trim()) {
-      return false;
+    // For delivery, validate pickup details
+    if (serviceType === ServiceType.DELIVERY) {
+      if (!pickupLocationType || !orderPaymentStatus || !orderConfirmationName.trim() || !orderReceiptNumber.trim() || !recipientName.trim()) {
+        return false;
+      }
+      if (pickupLocationType === PickupLocationType.STORE_RETAILER && !storeName.trim()) {
+        return false;
+      }
+    } else {
+      // For removal, recipient name is still important
+      if (!recipientName.trim()) {
+        return false;
+      }
     }
 
-    // Validate booking items
+
+    // Validate booking items for both services
     if (bookingItems.length === 0) {
       return false;
     }
@@ -68,10 +91,17 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     return true;
   }, [bookingDetails]);
 
-  // Validation for Step 4 fields (newly moved from CheckoutPage)
+  // Validation for Step 4 fields
   const isStep4Complete = useMemo(() => {
-    return bookingDetails.dateRequested.trim() !== '' && bookingDetails.timeWindow.trim() !== '';
-  }, [bookingDetails.dateRequested, bookingDetails.timeWindow]);
+    const { serviceType, pickupAddress, deliveryAddress, dateRequested, timeWindow } = bookingDetails;
+    if (!dateRequested.trim() || !timeWindow.trim() || !pickupAddress.trim()) {
+      return false;
+    }
+    if (serviceType === ServiceType.DELIVERY && !deliveryAddress.trim()) {
+      return false;
+    }
+    return true;
+  }, [bookingDetails]);
 
 
   const totalPrice = useMemo(() => calculateTotalPrice(), [calculateTotalPrice, bookingDetails.selectedPackage, bookingDetails.selectedAddOns]);
@@ -89,14 +119,14 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     }
   }, [bookingDetails.selectedPackage, isStep2Complete]);
 
-  // Scroll to Step 4 when Step 3 (Add-Ons) is complete
+  // Scroll to Step 4 when Step 3 (Add-Ons) is visible
   useEffect(() => {
-    if (bookingDetails.selectedPackage && isStep2Complete && bookingDetails.selectedAddOns) { // Add-ons are technically 'complete' when section is visible, and date/time is next
+    if (bookingDetails.selectedPackage && isStep2Complete) {
       setTimeout(() => {
         document.getElementById('schedule-delivery-section')?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     }
-  }, [bookingDetails.selectedPackage, isStep2Complete, bookingDetails.selectedAddOns]);
+  }, [bookingDetails.selectedPackage, isStep2Complete]);
 
 
   return (
@@ -107,15 +137,36 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
           QuickDrop SD: Fast Furniture Delivery & Assembly in San Diego.
         </h2>
         <p className="text-lg text-gray-700 max-w-2xl mx-auto">
-          Select your package below to get started. Full upfront pricing—no hidden fees!
+          Select your service below to get started. Full upfront pricing—no hidden fees!
         </p>
       </section>
 
-      {/* Step 1: Choose Your Package */}
+      {/* Service Type Selection */}
       <section className="mb-12">
-        <h3 className="text-2xl font-bold text-secondary-dark mb-6 text-center">Step 1: Choose Your Package</h3>
+        <h3 className="text-2xl font-bold text-secondary-dark mb-6 text-center">Step 1: What service do you need?</h3>
+        <div className="flex justify-center gap-2 sm:gap-4 mb-4">
+          <button
+            onClick={() => handleServiceTypeChange(ServiceType.DELIVERY)}
+            className={`px-6 sm:px-8 py-3 rounded-lg text-md sm:text-lg font-semibold transition-all duration-300 flex items-center gap-2 ${bookingDetails.serviceType === ServiceType.DELIVERY ? 'bg-primary-blue text-white shadow-lg' : 'bg-white text-secondary-dark border border-gray-300 hover:bg-light-gray'}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m12 4.5V16.5m4.5-1.625l-.375-.375M21 14.25V16.5m0 0h-3.375m0 0l-.375.375m0 0H16.5m3-4.5H18m-9-1.5H5.625c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V7.5a1.125 1.125 0 0 0-1.125-1.125H9.375z" /></svg>
+            Delivery & Assembly
+          </button>
+          <button
+            onClick={() => handleServiceTypeChange(ServiceType.REMOVAL)}
+            className={`px-6 sm:px-8 py-3 rounded-lg text-md sm:text-lg font-semibold transition-all duration-300 flex items-center gap-2 ${bookingDetails.serviceType === ServiceType.REMOVAL ? 'bg-accent-red text-white shadow-lg' : 'bg-white text-secondary-dark border border-gray-300 hover:bg-light-gray'}`}
+          >
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.067-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+            Furniture Removal
+          </button>
+        </div>
+      </section>
+
+      {/* Step 2: Choose Your Package */}
+      <section id="package-selection-section" className="mb-12">
+        <h3 className="text-2xl font-bold text-secondary-dark mb-6 text-center">Step 2: Choose Your {bookingDetails.serviceType === ServiceType.DELIVERY ? 'Delivery' : 'Removal'} Package</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {PACKAGES.map((pkg) => (
+          {currentPackages.map((pkg) => (
             <PackageCard
               key={pkg.name}
               pkg={pkg}
@@ -126,330 +177,162 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* Step 2: Item & Pickup Details - Only visible after package selection */}
+      {/* Step 3: Item & Pickup Details */}
       {bookingDetails.selectedPackage && (
         <section id="item-pickup-details-section" className="mb-12 animate-fade-in-up bg-white p-6 rounded-lg shadow-md border border-gray-200">
-          <h3 className="text-2xl font-bold text-secondary-dark mb-6 text-center">Step 2: Item & Pickup Details</h3>
+          <h3 className="text-2xl font-bold text-secondary-dark mb-6 text-center">Step 3: {bookingDetails.serviceType === ServiceType.DELIVERY ? 'Item & Pickup Details' : 'Item & Location Details'}</h3>
 
-          {/* Pickup Details Sub-section */}
-          <div className="mb-8 p-4 bg-light-gray rounded-md">
-            <h4 className="text-xl font-semibold text-secondary-dark mb-4">Pickup Information</h4>
+          {bookingDetails.serviceType === ServiceType.DELIVERY && (
+            <div className="mb-8 p-4 bg-light-gray rounded-md">
+              <h4 className="text-xl font-semibold text-secondary-dark mb-4">Pickup Information</h4>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Pickup Location Type <span className="text-accent-red">*</span></label>
-              <div className="flex gap-4">
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    name="pickupLocationType"
-                    value={PickupLocationType.STORE_RETAILER}
-                    checked={bookingDetails.pickupLocationType === PickupLocationType.STORE_RETAILER}
-                    onChange={handleBookingDetailsInputChange}
-                    className="form-radio text-primary-blue h-5 w-5"
-                  />
-                  <span className="ml-2 text-gray-700">Store/Retailer</span>
-                </label>
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    name="pickupLocationType"
-                    value={PickupLocationType.PRIVATE_RESIDENCE}
-                    checked={bookingDetails.pickupLocationType === PickupLocationType.PRIVATE_RESIDENCE}
-                    onChange={handleBookingDetailsInputChange}
-                    className="form-radio text-primary-blue h-5 w-5"
-                  />
-                  <span className="ml-2 text-gray-700">Private Residence/Other</span>
-                </label>
-              </div>
-            </div>
-
-            {bookingDetails.pickupLocationType === PickupLocationType.STORE_RETAILER && (
               <div className="mb-4">
-                <label htmlFor="storeName" className="block text-sm font-medium text-gray-700 mb-1">Store Name <span className="text-accent-red">*</span></label>
-                <input
-                  type="text"
-                  id="storeName"
-                  name="storeName"
-                  value={bookingDetails.storeName}
-                  onChange={handleBookingDetailsInputChange}
-                  placeholder="e.g., IKEA, Living Spaces"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
-                  required
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Pickup Location Type <span className="text-accent-red">*</span></label>
+                <div className="flex gap-4">
+                  <label className="inline-flex items-center">
+                    <input type="radio" name="pickupLocationType" value={PickupLocationType.STORE_RETAILER} checked={bookingDetails.pickupLocationType === PickupLocationType.STORE_RETAILER} onChange={handleBookingDetailsInputChange} className="form-radio text-primary-blue h-5 w-5"/>
+                    <span className="ml-2 text-gray-700">Store/Retailer</span>
+                  </label>
+                  <label className="inline-flex items-center">
+                    <input type="radio" name="pickupLocationType" value={PickupLocationType.PRIVATE_RESIDENCE} checked={bookingDetails.pickupLocationType === PickupLocationType.PRIVATE_RESIDENCE} onChange={handleBookingDetailsInputChange} className="form-radio text-primary-blue h-5 w-5"/>
+                    <span className="ml-2 text-gray-700">Private Residence/Other</span>
+                  </label>
+                </div>
               </div>
-            )}
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Order Status <span className="text-accent-red">*</span></label>
-              <div className="flex gap-4">
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    name="orderPaymentStatus"
-                    value={OrderPaymentStatus.NEEDS_PAYMENT}
-                    checked={bookingDetails.orderPaymentStatus === OrderPaymentStatus.NEEDS_PAYMENT}
-                    onChange={handleBookingDetailsInputChange}
-                    className="form-radio text-primary-blue h-5 w-5"
-                  />
-                  <span className="ml-2 text-gray-700">Needs to be Paid For</span>
-                </label>
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    name="orderPaymentStatus"
-                    value={OrderPaymentStatus.PRE_PAID}
-                    checked={bookingDetails.orderPaymentStatus === OrderPaymentStatus.PRE_PAID}
-                    onChange={handleBookingDetailsInputChange}
-                    className="form-radio text-primary-blue h-5 w-5"
-                  />
-                  <span className="ml-2 text-gray-700">Pre-Paid (Only Pickup Required)</span>
-                </label>
-              </div>
-            </div>
+              {bookingDetails.pickupLocationType === PickupLocationType.STORE_RETAILER && (
+                <div className="mb-4">
+                  <label htmlFor="storeName" className="block text-sm font-medium text-gray-700 mb-1">Store Name <span className="text-accent-red">*</span></label>
+                  <input type="text" id="storeName" name="storeName" value={bookingDetails.storeName} onChange={handleBookingDetailsInputChange} placeholder="e.g., IKEA, Living Spaces" className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue" required/>
+                </div>
+              )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="mb-4 md:mb-0">
-                <label htmlFor="orderConfirmationName" className="block text-sm font-medium text-gray-700 mb-1">Order Confirmation Name <span className="text-accent-red">*</span></label>
-                <input
-                  type="text"
-                  id="orderConfirmationName"
-                  name="orderConfirmationName"
-                  value={bookingDetails.orderConfirmationName}
-                  onChange={handleBookingDetailsInputChange}
-                  placeholder="Name on order/seller"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
-                  required
-                />
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Order Status <span className="text-accent-red">*</span></label>
+                <div className="flex gap-4">
+                  <label className="inline-flex items-center">
+                    <input type="radio" name="orderPaymentStatus" value={OrderPaymentStatus.NEEDS_PAYMENT} checked={bookingDetails.orderPaymentStatus === OrderPaymentStatus.NEEDS_PAYMENT} onChange={handleBookingDetailsInputChange} className="form-radio text-primary-blue h-5 w-5"/>
+                    <span className="ml-2 text-gray-700">Needs to be Paid For</span>
+                  </label>
+                  <label className="inline-flex items-center">
+                    <input type="radio" name="orderPaymentStatus" value={OrderPaymentStatus.PRE_PAID} checked={bookingDetails.orderPaymentStatus === OrderPaymentStatus.PRE_PAID} onChange={handleBookingDetailsInputChange} className="form-radio text-primary-blue h-5 w-5"/>
+                    <span className="ml-2 text-gray-700">Pre-Paid (Only Pickup Required)</span>
+                  </label>
+                </div>
               </div>
-              <div className="mb-4 md:mb-0">
-                <label htmlFor="orderReceiptNumber" className="block text-sm font-medium text-gray-700 mb-1">Order/Receipt Number <span className="text-accent-red">*</span></label>
-                <input
-                  type="text"
-                  id="orderReceiptNumber"
-                  name="orderReceiptNumber"
-                  value={bookingDetails.orderReceiptNumber}
-                  onChange={handleBookingDetailsInputChange}
-                  placeholder="Confirmation # or Receipt #"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
-                  required
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="mb-4 md:mb-0">
+                  <label htmlFor="orderConfirmationName" className="block text-sm font-medium text-gray-700 mb-1">Order Confirmation Name <span className="text-accent-red">*</span></label>
+                  <input type="text" id="orderConfirmationName" name="orderConfirmationName" value={bookingDetails.orderConfirmationName} onChange={handleBookingDetailsInputChange} placeholder="Name on order/seller" className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue" required/>
+                </div>
+                <div className="mb-4 md:mb-0">
+                  <label htmlFor="orderReceiptNumber" className="block text-sm font-medium text-gray-700 mb-1">Order/Receipt Number <span className="text-accent-red">*</span></label>
+                  <input type="text" id="orderReceiptNumber" name="orderReceiptNumber" value={bookingDetails.orderReceiptNumber} onChange={handleBookingDetailsInputChange} placeholder="Confirmation # or Receipt #" className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue" required/>
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="mt-4">
-              <label htmlFor="recipientName" className="block text-sm font-medium text-gray-700 mb-1">Recipient Name <span className="text-accent-red">*</span></label>
-              <input
-                type="text"
-                id="recipientName"
-                name="recipientName"
-                value={bookingDetails.recipientName}
-                onChange={handleBookingDetailsInputChange}
-                placeholder="Name of person receiving delivery"
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
-                required
-              />
+           <div className={`p-4 bg-light-gray rounded-md ${bookingDetails.serviceType === ServiceType.DELIVERY ? '' : 'mb-8'}`}>
+              <label htmlFor="recipientName" className="block text-sm font-medium text-gray-700 mb-1">
+                {bookingDetails.serviceType === ServiceType.DELIVERY ? 'Recipient Name' : 'Primary Contact Name'} <span className="text-accent-red">*</span>
+              </label>
+              <input type="text" id="recipientName" name="recipientName" value={bookingDetails.recipientName} onChange={handleBookingDetailsInputChange} placeholder="Name of person at location" className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue" required/>
             </div>
-          </div>
 
-          {/* Dynamic Item List Sub-section */}
           <div className="p-4 bg-light-gray rounded-md">
-            <h4 className="text-xl font-semibold text-secondary-dark mb-4">Items to be Delivered <span className="text-accent-red">*</span></h4>
-
-            {bookingDetails.bookingItems.length === 0 && (
-                <p className="text-gray-600 text-center py-4">No items added yet. Click "Add Item" to begin.</p>
-            )}
-
+            <h4 className="text-xl font-semibold text-secondary-dark mb-4">Items to be {bookingDetails.serviceType === ServiceType.DELIVERY ? 'Delivered' : 'Removed'} <span className="text-accent-red">*</span></h4>
+            {bookingDetails.bookingItems.length === 0 && (<p className="text-gray-600 text-center py-4">No items added yet. Click "Add Item" to begin.</p>)}
             {bookingDetails.bookingItems.map((item) => (
               <div key={item.id} className="bg-white p-4 rounded-md shadow-sm mb-4 border border-gray-200 relative">
                 <h5 className="font-semibold text-primary-blue mb-3">Item: {item.name || 'Untitled Item'}</h5>
-                <button
-                  onClick={() => removeBookingItem(item.id)}
-                  className="absolute top-2 right-2 text-gray-500 hover:text-accent-red transition-colors duration-200"
-                  aria-label="Remove item"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                  </svg>
+                <button onClick={() => removeBookingItem(item.id)} className="absolute top-2 right-2 text-gray-500 hover:text-accent-red transition-colors duration-200" aria-label="Remove item">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                 </button>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label htmlFor={`item-name-${item.id}`} className="block text-sm font-medium text-gray-700 mb-1">Item Name/Product <span className="text-accent-red">*</span></label>
-                    <input
-                      type="text"
-                      id={`item-name-${item.id}`}
-                      value={item.name}
-                      onChange={(e) => handleUpdateItem(item.id, 'name', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
-                      required
-                    />
+                    <input type="text" id={`item-name-${item.id}`} value={item.name} onChange={(e) => handleUpdateItem(item.id, 'name', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue" required/>
                   </div>
                   <div>
                     <label htmlFor={`item-color-${item.id}`} className="block text-sm font-medium text-gray-700 mb-1">Color/Variant</label>
-                    <input
-                      type="text"
-                      id={`item-color-${item.id}`}
-                      value={item.color}
-                      onChange={(e) => handleUpdateItem(item.id, 'color', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
-                    />
+                    <input type="text" id={`item-color-${item.id}`} value={item.color} onChange={(e) => handleUpdateItem(item.id, 'color', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"/>
                   </div>
                   <div className="md:col-span-2">
                     <label htmlFor={`item-size-${item.id}`} className="block text-sm font-medium text-gray-700 mb-1">Size/Dimensions</label>
-                    <input
-                      type="text"
-                      id={`item-size-${item.id}`}
-                      value={item.size}
-                      onChange={(e) => handleUpdateItem(item.id, 'size', e.target.value)}
-                      placeholder="e.g., 60x30x20 inches, Estimated 50 lbs"
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
-                    />
-                     <p className="text-xs text-gray-500 mt-1">Include estimated weight/size for driver planning.</p>
+                    <input type="text" id={`item-size-${item.id}`} value={item.size} onChange={(e) => handleUpdateItem(item.id, 'size', e.target.value)} placeholder="e.g., 60x30x20 inches, Estimated 50 lbs" className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"/>
+                    <p className="text-xs text-gray-500 mt-1">Include estimated weight/size for driver planning.</p>
                   </div>
                   <div className="md:col-span-2">
                     <label htmlFor={`item-description-${item.id}`} className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea
-                      id={`item-description-${item.id}`}
-                      value={item.description}
-                      onChange={(e) => handleUpdateItem(item.id, 'description', e.target.value)}
-                      rows={2}
-                      placeholder="Special notes: 'Flat-pack', 'Very heavy box', 'Fragile'"
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
-                    ></textarea>
+                    <textarea id={`item-description-${item.id}`} value={item.description} onChange={(e) => handleUpdateItem(item.id, 'description', e.target.value)} rows={2} placeholder="Special notes: 'Flat-pack', 'Very heavy box', 'Fragile'" className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"></textarea>
                   </div>
                 </div>
               </div>
             ))}
-
-            {/* New Item Input */}
             <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200 mt-6">
-                <h5 className="font-semibold text-secondary-dark mb-3">Add New Item</h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label htmlFor="new-item-name" className="block text-sm font-medium text-gray-700 mb-1">Item Name/Product <span className="text-accent-red">*</span></label>
-                    <input
-                      type="text"
-                      id="new-item-name"
-                      value={newItem.name}
-                      onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
-                      placeholder="e.g., MALM Desk"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="new-item-color" className="block text-sm font-medium text-gray-700 mb-1">Color/Variant</label>
-                    <input
-                      type="text"
-                      id="new-item-color"
-                      value={newItem.color}
-                      onChange={(e) => setNewItem({ ...newItem, color: e.target.value })}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
-                      placeholder="e.g., White Oak"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label htmlFor="new-item-size" className="block text-sm font-medium text-gray-700 mb-1">Size/Dimensions</label>
-                    <input
-                      type="text"
-                      id="new-item-size"
-                      value={newItem.size}
-                      onChange={(e) => setNewItem({ ...newItem, size: e.target.value })}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
-                      placeholder="e.g., 60x30x20 inches, Estimated 50 lbs"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label htmlFor="new-item-description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea
-                      id="new-item-description"
-                      value={newItem.description}
-                      onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                      rows={2}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue"
-                      placeholder="Short notes: 'Flat-pack', 'Very heavy box', etc."
-                    ></textarea>
-                  </div>
+              <h5 className="font-semibold text-secondary-dark mb-3">Add New Item</h5>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label htmlFor="new-item-name" className="block text-sm font-medium text-gray-700 mb-1">Item Name/Product <span className="text-accent-red">*</span></label>
+                  <input type="text" id="new-item-name" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue" placeholder="e.g., MALM Desk"/>
                 </div>
-                <button
-                  onClick={handleAddItem}
-                  className="w-full bg-primary-blue text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200"
-                >
-                  Add Item
-                </button>
+                <div>
+                  <label htmlFor="new-item-color" className="block text-sm font-medium text-gray-700 mb-1">Color/Variant</label>
+                  <input type="text" id="new-item-color" value={newItem.color} onChange={(e) => setNewItem({ ...newItem, color: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue" placeholder="e.g., White Oak"/>
+                </div>
+                <div className="md:col-span-2">
+                  <label htmlFor="new-item-size" className="block text-sm font-medium text-gray-700 mb-1">Size/Dimensions</label>
+                  <input type="text" id="new-item-size" value={newItem.size} onChange={(e) => setNewItem({ ...newItem, size: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue" placeholder="e.g., 60x30x20 inches, Estimated 50 lbs (mandatory for logistics planning)"/>
+                </div>
+                <div className="md:col-span-2">
+                  <label htmlFor="new-item-description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea id="new-item-description" value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} rows={2} className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-blue focus:border-primary-blue" placeholder="Short notes: 'Flat-pack', 'Very heavy box', etc."></textarea>
+                </div>
+              </div>
+              <button onClick={handleAddItem} className="w-full bg-primary-blue text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200">Add Item</button>
             </div>
           </div>
         </section>
       )}
 
-      {/* Step 3: Customize Your Order (Add-Ons) - Only visible after Step 2 completion */}
-      {bookingDetails.selectedPackage && isStep2Complete && (
+      {/* Step 4: Customize Your Order (Add-Ons) */}
+      {bookingDetails.selectedPackage && isStep2Complete && applicableAddOns.length > 0 && (
         <section id="add-ons-section" className="mb-12 animate-fade-in-up">
-          <h3 className="text-2xl font-bold text-secondary-dark mb-6 text-center">Step 3: Customize Your Order (Add-Ons)</h3>
+          <h3 className="text-2xl font-bold text-secondary-dark mb-6 text-center">Step 4: Customize Your Order (Add-Ons)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {ADD_ONS.map((addOn) => (
+            {applicableAddOns.map((addOn) => (
               <AddOnToggle key={addOn.id} addOn={addOn} />
             ))}
           </div>
         </section>
       )}
 
-      {/* Step 4: Schedule Your Delivery - Only visible after Step 3 completion (Add-Ons) */}
+      {/* Step 5: Schedule Your Delivery */}
       {bookingDetails.selectedPackage && isStep2Complete && (
         <section id="schedule-delivery-section" className="mb-12 animate-fade-in-up bg-white p-6 rounded-lg shadow-md border border-gray-200">
-          <h3 className="text-2xl font-bold text-secondary-dark mb-6 text-center">Step 4: Schedule Your Delivery</h3>
+          <h3 className="text-2xl font-bold text-secondary-dark mb-6 text-center">Step 5: Schedule Your {bookingDetails.serviceType === ServiceType.DELIVERY ? 'Delivery' : 'Removal'}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="col-span-full">
-              <label htmlFor="pickupAddress" className="block text-sm font-medium text-gray-700 mb-1">Pickup Address <span className="text-accent-red">*</span></label>
-              <input
-                type="text"
-                name="pickupAddress"
-                id="pickupAddress"
-                value={bookingDetails.pickupAddress}
-                onChange={handleBookingDetailsInputChange}
-                required
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
-                placeholder="e.g., 123 Main St, San Diego, CA"
-              />
+              <label htmlFor="pickupAddress" className="block text-sm font-medium text-gray-700 mb-1">{bookingDetails.serviceType === ServiceType.DELIVERY ? 'Pickup Address' : 'Removal Address'} <span className="text-accent-red">*</span></label>
+              <input type="text" name="pickupAddress" id="pickupAddress" value={bookingDetails.pickupAddress} onChange={handleBookingDetailsInputChange} required className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue" placeholder="e.g., 123 Main St, San Diego, CA"/>
             </div>
-            <div className="col-span-full">
-              <label htmlFor="deliveryAddress" className="block text-sm font-medium text-gray-700 mb-1">Delivery Address <span className="text-accent-red">*</span></label>
-              <input
-                type="text"
-                name="deliveryAddress"
-                id="deliveryAddress"
-                value={bookingDetails.deliveryAddress}
-                onChange={handleBookingDetailsInputChange}
-                required
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
-                placeholder="e.g., 456 Elm Ave, San Diego, CA"
-              />
-            </div>
+            {bookingDetails.serviceType === ServiceType.DELIVERY && (
+               <div className="col-span-full">
+                <label htmlFor="deliveryAddress" className="block text-sm font-medium text-gray-700 mb-1">Delivery Address <span className="text-accent-red">*</span></label>
+                <input type="text" name="deliveryAddress" id="deliveryAddress" value={bookingDetails.deliveryAddress} onChange={handleBookingDetailsInputChange} required className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue" placeholder="e.g., 456 Elm Ave, San Diego, CA"/>
+              </div>
+            )}
             <div>
               <label htmlFor="dateRequested" className="block text-sm font-medium text-gray-700 mb-1">Preferred Date <span className="text-accent-red">*</span></label>
-              <input
-                type="date"
-                name="dateRequested"
-                id="dateRequested"
-                value={bookingDetails.dateRequested}
-                onChange={handleBookingDetailsInputChange}
-                required
-                min={new Date().toISOString().split('T')[0]} // Min date is today
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
-              />
+              <input type="date" name="dateRequested" id="dateRequested" value={bookingDetails.dateRequested} onChange={handleBookingDetailsInputChange} required min={new Date().toISOString().split('T')[0]} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"/>
             </div>
             <div>
               <label htmlFor="timeWindow" className="block text-sm font-medium text-gray-700 mb-1">Time Window <span className="text-accent-red">*</span></label>
-              <select
-                name="timeWindow"
-                id="timeWindow"
-                value={bookingDetails.timeWindow}
-                onChange={handleBookingDetailsInputChange}
-                required
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue bg-white"
-              >
+              <select name="timeWindow" id="timeWindow" value={bookingDetails.timeWindow} onChange={handleBookingDetailsInputChange} required className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue bg-white">
                 <option value="">Select a time window</option>
-                {TIME_WINDOWS.map(window => (
-                  <option key={window} value={window}>{window}</option>
-                ))}
+                {TIME_WINDOWS.map(window => (<option key={window} value={window}>{window}</option>))}
               </select>
             </div>
           </div>

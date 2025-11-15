@@ -70,22 +70,13 @@ function App() {
     }
   };
 
-  // Simple demo navigation for POD pages (replace with actual routing logic in a real app)
-  const navigateToDriverApproval = () => handleNavigate(Page.DRIVER_APPROVAL, 'QDS-1678888888888'); // Example ID
-  const navigateToCustomerApproval = () => handleNavigate(Page.CUSTOMER_APPROVAL, 'QDS-1678888888888'); // Example ID
-
   return (
     <BookingProvider>
       <div className="min-h-screen flex flex-col">
         <Header onNavigate={handleNavigate} />
-        <main className="flex-grow">
+        <main className="flex-grow pb-24"> {/* Added padding-bottom to avoid overlap with sticky bar */}
           {renderPage()}
         </main>
-        {/* Simple navigation for demo of POD pages */}
-        <div className="fixed bottom-20 right-4 p-2 bg-secondary-dark text-white rounded-lg shadow-lg z-50 flex flex-col space-y-2">
-            <button onClick={navigateToDriverApproval} className="text-sm hover:underline">Driver POD Demo</button>
-            <button onClick={navigateToCustomerApproval} className="text-sm hover:underline">Customer POD Demo</button>
-        </div>
         <Footer onNavigate={handleNavigate} />
       </div>
     </BookingProvider>

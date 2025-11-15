@@ -30,10 +30,10 @@ const HowItWorksPage: React.FC<HowItWorksPageProps> = ({ onNavigate }) => {
           </h3>
           <ul className="list-disc list-inside text-gray-700 space-y-3 text-lg">
             <li>
-              <span className="font-semibold">Transparent Pricing:</span> Select one of our combined <span className="font-bold">Delivery & Assembly Packages</span> (Small, Medium, Large, Premium) right on the homepage, with all prices clearly displayed upfront.
+              <span className="font-semibold">Transparent Pricing:</span> Select one of our <span className="font-bold">Delivery Packages</span> (Small, Medium, Large, Premium) right on the homepage, with all prices clearly displayed upfront.
             </li>
             <li>
-              <span className="font-semibold">Customize:</span> Add optional services like <span className="font-bold">Rush Delivery</span>, <span className="font-bold">Stair Fees</span> ($10/flight), or the <span className="font-bold">Old Furniture Removal</span> upsell to perfectly match your needs.
+              <span className="font-semibold">Customize:</span> Add optional services like <span className="font-bold">Assembly</span> (available as an add-on), <span className="font-bold">Rush Delivery</span>, <span className="font-bold">Stair Fees</span> ($10/flight), or the <span className="font-bold">Old Furniture Removal</span> upsell to perfectly match your needs.
             </li>
           </ul>
         </div>

@@ -15,6 +15,11 @@ export enum Page {
   NOT_FOUND = 'NOT_FOUND',
 }
 
+export enum ServiceType {
+  DELIVERY = 'delivery',
+  REMOVAL = 'removal',
+}
+
 export interface Package {
   name: string;
   basePrice: number;
@@ -30,6 +35,7 @@ export interface AddOn {
   type: 'toggle' | 'dropdown' | 'input' | 'upsell';
   options?: { value: string; label: string; price: number }[];
   maxQuantity?: number; // For input types like 'Stair Fees', 'Extra Stops'
+  applicableServices?: ServiceType[]; // New field to specify which services this add-on applies to
 }
 
 export interface SelectedAddOn {
@@ -59,6 +65,7 @@ export interface BookingItem {
 }
 
 export interface BookingDetails {
+  serviceType: ServiceType; // New field
   selectedPackage: Package | null;
   selectedAddOns: SelectedAddOn[];
   pickupAddress: string;
@@ -111,6 +118,7 @@ export interface ProofOfDelivery {
  * Backend Database Schema Update (Conceptual)
  *
  * UPDATE Bookings Table:
+ *   ADD COLUMN service_type VARCHAR(50) NOT NULL DEFAULT 'delivery'; -- From ServiceType enum
  *   ADD COLUMN pickup_type VARCHAR(50);             -- From PickupLocationType enum
  *   ADD COLUMN store_name VARCHAR(255);             -- Required if pickup_type is 'Store/Retailer'
  *   ADD COLUMN payment_required BOOLEAN;            -- From OrderPaymentStatus enum

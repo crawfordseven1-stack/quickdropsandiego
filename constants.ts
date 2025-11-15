@@ -1,5 +1,5 @@
 // constants.ts
-import { AddOn, Package } from './types';
+import { AddOn, Package, ServiceType } from './types';
 
 export const APP_NAME = "QuickDrop SD";
 export const APP_WEBSITE = "quickdropsd.work";
@@ -10,7 +10,7 @@ export const PACKAGES: Package[] = [
   {
     name: "Small Package",
     basePrice: 65,
-    description: "Best for single chairs, small desks. (Delivery only. Assembly available as an add on)",
+    description: "Delivery only, assembly available as an add on.",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto text-primary-blue">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m12 4.5V16.5m4.5-1.625l-.375-.375M21 14.25V16.5m0 0h-3.375m0 0l-.375.375m0 0H16.5m3-4.5H18m-9-1.5H5.625c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V7.5a1.125 1.125 0 0 0-1.125-1.125H9.375z" />
           </svg>`
@@ -18,7 +18,7 @@ export const PACKAGES: Package[] = [
   {
     name: "Medium Package",
     basePrice: 110,
-    description: "Best for standard bookcases, medium dining sets. (Delivery only. Assembly available as an add on)",
+    description: "Delivery only, assembly available as an add on.",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto text-primary-blue">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375A1.125 1.125 0 0 1 2.25 17.625V14.25m12 4.5V16.5m4.5-1.625l-.375-.375M21 14.25V16.5m0 0h-3.375m0 0l-.375.375m0 0H16.5m3-4.5H18m-9-1.5H5.625c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V7.5a1.125 1.125 0 0 0-1.125-1.125H9.375z" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75V21a.75.75 0 0 0 .75.75h.75A.75.75 0 0 0 13.5 21v-2.25" />
@@ -27,7 +27,7 @@ export const PACKAGES: Package[] = [
   {
     name: "Large Package",
     basePrice: 160,
-    description: "Best for large sectionals, bedroom sets. (Delivery only. Assembly available as an add on)",
+    description: "Delivery only, assembly available as an add on.",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto text-primary-blue">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375A1.125 1.125 0 0 1 2.25 17.625V14.25m12 4.5V16.5m4.5-1.625l-.375-.375M21 14.25V16.5m0 0h-3.375m0 0l-.375.375m0 0H16.5m3-4.5H18m-9-1.5H5.625c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V7.5a1.125 1.125 0 0 0-1.125-1.125H9.375z" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75V21a.75.75 0 0 0 .75.75h.75A.75.75 0 0 0 13.5 21v-2.25M15 18.75v2.25a.75.75 0 0 1-.75.75h-.75a.75.75 0 0 1-.75-.75v-2.25M9 18.75v2.25a.75.75 0 0 0 .75.75h.75a.75.75 0 0 0 .75-.75v-2.25" />
@@ -36,7 +36,7 @@ export const PACKAGES: Package[] = [
   {
     name: "Premium Package",
     basePrice: 220,
-    description: "Best for heavy, complex, oversized items. (Delivery only. Assembly available as an add on)",
+    description: "Delivery only, assembly available as an add on.",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto text-primary-blue">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375A1.125 1.125 0 0 1 2.25 17.625V14.25m12 4.5V16.5m4.5-1.625l-.375-.375M21 14.25V16.5m0 0h-3.375m0 0l-.375.375m0 0H16.5m3-4.5H18m-9-1.5H5.625c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V7.5a1.125 1.125 0 0 0-1.125-1.125H9.375z" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75V21a.75.75 0 0 0 .75.75h.75A.75.75 0 0 0 13.5 21v-2.25M15 18.75v2.25a.75.75 0 0 1-.75.75h-.75a.75.75 0 0 1-.75-.75v-2.25M9 18.75v2.25a.75.75 0 0 0 .75.75h.75a.75.75 0 0 0 .75-.75v-2.25M6 18.75v2.25a.75.75 0 0 0 .75.75h.75a.75.75 0 0 0 .75-.75v-2.25M18 18.75v2.25a.75.75 0 0 1-.75.75h-.75a.75.75 0 0 1-.75-.75v-2.25" />
@@ -44,10 +44,46 @@ export const PACKAGES: Package[] = [
   },
 ];
 
+export const REMOVAL_PACKAGES: Package[] = [
+  {
+    name: "Small Item Removal",
+    basePrice: 75,
+    description: "Best for single chairs, small desks, nightstands. (Removal/Haul-Away only)",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto text-accent-red">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.067-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+          </svg>`
+  },
+  {
+    name: "Medium Item Removal",
+    basePrice: 120,
+    description: "Best for standard bookcases, medium dining sets, loveseats. (Removal/Haul-Away only)",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto text-accent-red">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.067-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+          </svg>`
+  },
+  {
+    name: "Large Item Removal",
+    basePrice: 180,
+    description: "Best for large sectionals, bedroom sets, multiple large items. (Removal/Haul-Away only)",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto text-accent-red">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.067-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+          </svg>`
+  },
+  {
+    name: "Premium Item Removal",
+    basePrice: 250,
+    description: "Best for heavy, complex, or multiple oversized items. (Removal/Haul-Away only)",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto text-accent-red">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.067-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+          </svg>`
+  },
+];
+
+
 export const ADD_ONS: AddOn[] = [
   {
     id: "rush-delivery",
-    name: "Rush Delivery",
+    name: "Rush Service",
     basePrice: 0, // Price determined by dropdown option
     description: "Price varies based on required urgency.",
     type: "dropdown",
@@ -56,6 +92,7 @@ export const ADD_ONS: AddOn[] = [
       { value: "next-day", label: "Next Day (+$30)", price: 30 },
       { value: "same-day", label: "Same Day (+$60)", price: 60 },
     ],
+    applicableServices: [ServiceType.DELIVERY, ServiceType.REMOVAL],
   },
   {
     id: "stair-fees",
@@ -64,13 +101,15 @@ export const ADD_ONS: AddOn[] = [
     description: "Fee applies per flight beyond the ground floor.",
     type: "input",
     maxQuantity: 10, // Max 10 extra flights
+    applicableServices: [ServiceType.DELIVERY, ServiceType.REMOVAL],
   },
   {
     id: "packaging-removal",
     name: "Packaging Removal",
     basePrice: [15, 25], // Price varies based on package size
-    description: "Price varies based on the size of the package selected.",
+    description: "Only for delivery jobs. We'll remove all new product packaging.",
     type: "toggle",
+    applicableServices: [ServiceType.DELIVERY],
   },
   {
     id: "extra-stops",
@@ -79,20 +118,23 @@ export const ADD_ONS: AddOn[] = [
     description: "Price varies based on the number of additional stops.",
     type: "input",
     maxQuantity: 3, // Max 3 extra stops
+    applicableServices: [ServiceType.DELIVERY, ServiceType.REMOVAL],
   },
   {
     id: "after-hours-delivery",
-    name: "After-Hours Delivery",
+    name: "After-Hours Service",
     basePrice: 25, // Flat fee, could be a range $25-$50 but simplified to $25 for now
     description: "Flat fee for service outside standard business hours.",
     type: "toggle",
+    applicableServices: [ServiceType.DELIVERY, ServiceType.REMOVAL],
   },
   {
     id: "old-furniture-removal",
-    name: "Old Furniture Removal",
+    name: "Old Furniture Removal Add-on",
     basePrice: 0, // Upsell, custom pricing
-    description: "Customers must be prompted with an upsell option for this service.",
+    description: "Add removal of old furniture to your delivery order. For removal-only jobs, please select a Removal Package.",
     type: "upsell",
+    applicableServices: [ServiceType.DELIVERY],
   },
 ];
 

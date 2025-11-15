@@ -33,7 +33,7 @@ const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({ onNavigate }) =
         </p>
         <ul className="list-disc list-inside text-gray-700 ml-4 mt-3 space-y-1">
           <li>Delivery of furniture from a specified pickup location to a delivery address.</li>
-          <li>Assembly of furniture items as part of our packages or selected add-ons.</li>
+          <li>Assembly of furniture items, available as an add-on to delivery services.</li>
           <li>Optional add-on services such as rush delivery, stair fees, packaging removal, extra stops, after-hours delivery, and old furniture removal.</li>
         </ul>
       </div>

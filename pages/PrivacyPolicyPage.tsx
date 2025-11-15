@@ -1,7 +1,7 @@
 // pages/PrivacyPolicyPage.tsx
 import React from 'react';
 import { Page } from '../types';
-import { APP_WEBSITE } from '../constants';
+import { APP_WEBSITE, CONTACT_EMAIL } from '../constants'; // Import CONTACT_EMAIL
 
 interface PrivacyPolicyPageProps {
   onNavigate: (page: Page) => void;
@@ -74,7 +74,7 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onNavigate }) => 
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
         <h3 className="text-2xl font-bold text-primary-blue mb-4">5. Contact Us</h3>
         <p className="text-gray-700 leading-relaxed">
-          If you have any questions about this Privacy Policy, please contact us at <a href="mailto:contact@quickdropsd.com" className="text-primary-blue hover:underline">contact@quickdropsd.com</a> or visit <a href={`https://${APP_WEBSITE}`} target="_blank" rel="noopener noreferrer" className="text-primary-blue hover:underline">{APP_WEBSITE}</a>.
+          If you have any questions about this Privacy Policy, please contact us at <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary-blue hover:underline">{CONTACT_EMAIL}</a> or visit <a href={`https://${APP_WEBSITE}`} target="_blank" rel="noopener noreferrer" className="text-primary-blue hover:underline">{APP_WEBSITE}</a>.
         </p>
       </div>
 

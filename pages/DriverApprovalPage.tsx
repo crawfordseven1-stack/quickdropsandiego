@@ -10,8 +10,8 @@ interface DriverApprovalPageProps {
 }
 
 const DriverApprovalPage: React.FC<DriverApprovalPageProps> = ({ onNavigate, bookingIdParam }) => {
-  const { bookingDetails, updateBookingDetails } = useBooking(); // Using bookingDetails for basic info here
-  const [bookingId, setBookingId] = useState(bookingIdParam || '');
+  const { updateBookingDetails } = useBooking(); // Using bookingDetails for basic info here
+  const [bookingId, setBookingId] = useState('');
   const [isJobFound, setIsJobFound] = useState(false);
   const [proofPhotos, setProofPhotos] = useState<File[]>([]);
   const [signatureImage, setSignatureImage] = useState<string | null>(null);
@@ -23,12 +23,28 @@ const DriverApprovalPage: React.FC<DriverApprovalPageProps> = ({ onNavigate, boo
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
-    if (bookingId && bookingDetails.bookingId === bookingId) {
-      setIsJobFound(true);
-    } else {
-      setIsJobFound(false);
+    const params = new URLSearchParams(window.location.search);
+    const bookingIdFromUrl = params.get('bookingId') || params.get('token'); // support token later
+    if (bookingIdFromUrl) {
+      setBookingId(bookingIdFromUrl);
+    } else if (bookingIdParam) {
+      setBookingId(bookingIdParam);
     }
-  }, [bookingId, bookingDetails.bookingId]);
+  }, [bookingIdParam]);
+
+  useEffect(() => {
+    if (bookingId) {
+        // For demo, we check localStorage. A real app would fetch from a backend.
+        const storedBooking = localStorage.getItem(`booking_${bookingId}`);
+        if (storedBooking) {
+            setIsJobFound(true);
+        } else {
+            setIsJobFound(false);
+        }
+    } else {
+        setIsJobFound(false);
+    }
+  }, [bookingId]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -142,12 +158,14 @@ const DriverApprovalPage: React.FC<DriverApprovalPageProps> = ({ onNavigate, boo
       driverLocation: driverLocation,
     };
 
-    // Update booking state (simulated)
-    updateBookingDetails({
-      jobStatus: JobStatus.DRIVER_APPROVED,
-      // In a real app, this would be stored in a backend database
-      // For this simulation, we'll store POD in local storage to retrieve for customer approval
-    });
+    // Update booking state in localStorage (simulated)
+    const bookingDataRaw = localStorage.getItem(`booking_${bookingId}`);
+    if (bookingDataRaw) {
+        const bookingData = JSON.parse(bookingDataRaw);
+        bookingData.jobStatus = JobStatus.DRIVER_APPROVED;
+        localStorage.setItem(`booking_${bookingId}`, JSON.stringify(bookingData));
+    }
+    
     localStorage.setItem(`pod_${bookingId}`, JSON.stringify(newProofOfDelivery));
 
     setIsProcessing(false);
@@ -170,7 +188,7 @@ const DriverApprovalPage: React.FC<DriverApprovalPageProps> = ({ onNavigate, boo
             className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
           />
           <p className="mt-4 text-sm text-gray-500">
-            For demonstration, use a placeholder ID like "QDS-1678888888888" or the one from Checkout page if you completed a booking.
+            For demonstration, use the Booking ID from a completed checkout.
           </p>
         </div>
       )}
@@ -240,7 +258,7 @@ const DriverApprovalPage: React.FC<DriverApprovalPageProps> = ({ onNavigate, boo
             disabled={isProcessing || proofPhotos.length === 0 || !signatureImage || !driverLocation}
             className={`
               w-full py-3 rounded-md text-xl font-bold transition-colors duration-300
-              ${isProcessing
+              ${isProcessing || !isJobFound || proofPhotos.length === 0 || !signatureImage || !driverLocation
                 ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
                 : 'bg-accent-green text-white hover:bg-green-600 shadow-lg'
               }

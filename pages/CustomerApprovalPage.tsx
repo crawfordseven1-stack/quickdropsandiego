@@ -1,9 +1,8 @@
 // pages/CustomerApprovalPage.tsx
 import React, { useState, useEffect } from 'react';
-import { Page, ProofOfDelivery, JobStatus } from '../types';
+import { Page, ProofOfDelivery, JobStatus, BookingDetails } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Modal from '../components/Modal';
-import { useBooking } from '../context/BookingContext';
 
 interface CustomerApprovalPageProps {
   onNavigate: (page: Page) => void;
@@ -11,8 +10,7 @@ interface CustomerApprovalPageProps {
 }
 
 const CustomerApprovalPage: React.FC<CustomerApprovalPageProps> = ({ onNavigate, bookingIdParam }) => {
-  const { updateBookingDetails } = useBooking();
-  const [bookingId, setBookingId] = useState(bookingIdParam || '');
+  const [bookingId, setBookingId] = useState('');
   const [pod, setPod] = useState<ProofOfDelivery | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -20,6 +18,18 @@ const CustomerApprovalPage: React.FC<CustomerApprovalPageProps> = ({ onNavigate,
   const [modalMessage, setModalMessage] = useState('');
   const [disputeReason, setDisputeReason] = useState('');
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const bookingIdFromUrl = params.get('bookingId') || params.get('token'); // support token later
+    if (bookingIdFromUrl) {
+      setBookingId(bookingIdFromUrl);
+    } else if (bookingIdParam) {
+      setBookingId(bookingIdParam);
+    } else {
+      setIsLoading(false);
+    }
+  }, [bookingIdParam]);
 
   useEffect(() => {
     const fetchPodDetails = async () => {
@@ -54,8 +64,15 @@ const CustomerApprovalPage: React.FC<CustomerApprovalPageProps> = ({ onNavigate,
         approvalTimestamp: new Date().toISOString(),
       };
       setPod(updatedPod);
-      localStorage.setItem(`pod_${bookingId}`, JSON.stringify(updatedPod)); // Update local storage
-      updateBookingDetails({ jobStatus: JobStatus.COMPLETED }); // Update global state
+      localStorage.setItem(`pod_${bookingId}`, JSON.stringify(updatedPod));
+
+      const bookingDataRaw = localStorage.getItem(`booking_${bookingId}`);
+      if(bookingDataRaw) {
+        const bookingData: BookingDetails = JSON.parse(bookingDataRaw);
+        bookingData.jobStatus = JobStatus.COMPLETED;
+        localStorage.setItem(`booking_${bookingId}`, JSON.stringify(bookingData));
+      }
+
       setModalMessage("Thank you for confirming! Your job is now officially completed. No refunds on completed jobs.");
       setIsModalOpen(true);
     } else {
@@ -81,8 +98,15 @@ const CustomerApprovalPage: React.FC<CustomerApprovalPageProps> = ({ onNavigate,
       customerApproved: false, // Explicitly mark as not approved
     };
     setPod(updatedPod);
-    localStorage.setItem(`pod_${bookingId}`, JSON.stringify(updatedPod)); // Update local storage
-    updateBookingDetails({ jobStatus: JobStatus.DISPUTED }); // Update global state
+    localStorage.setItem(`pod_${bookingId}`, JSON.stringify(updatedPod));
+
+    const bookingDataRaw = localStorage.getItem(`booking_${bookingId}`);
+    if(bookingDataRaw) {
+        const bookingData: BookingDetails = JSON.parse(bookingDataRaw);
+        bookingData.jobStatus = JobStatus.DISPUTED;
+        localStorage.setItem(`booking_${bookingId}`, JSON.stringify(bookingData));
+    }
+    
     setModalMessage("Your dispute has been recorded. A QuickDrop SD supervisor will contact you shortly to resolve the issue.");
     setIsModalOpen(true);
     setIsDisputeModalOpen(false);
