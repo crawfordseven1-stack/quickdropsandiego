@@ -1,11 +1,66 @@
 // pages/HomePage.tsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import PackageCard from '../components/PackageCard';
 import AddOnToggle from '../components/AddOnToggle';
 import { PACKAGES, ADD_ONS, TIME_WINDOWS, REMOVAL_PACKAGES } from '../constants'; // Import TIME_WINDOWS and REMOVAL_PACKAGES
 import { Page, Package, PickupLocationType, OrderPaymentStatus, BookingItem, ServiceType } from '../types';
 import { useBooking } from '../context/BookingContext';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs for booking items
+
+// Fix: Declare specific Google Maps Places API types used to resolve 'Cannot find namespace google' errors.
+declare global {
+  interface Window {
+    google: {
+      maps: {
+        places: {
+          AutocompleteService: new (element?: HTMLInputElement) => AutocompleteService;
+          PlacesService: new (attrContainer: HTMLDivElement | HTMLMapElement) => PlacesService;
+          PlacesServiceStatus: {
+            OK: string;
+            ZERO_RESULTS: string;
+            // Add other statuses if needed, e.g., INVALID_REQUEST, OVER_QUERY_LIMIT, REQUEST_DENIED, UNKNOWN_ERROR
+          };
+          AutocompletePrediction: {
+            description: string;
+            place_id: string;
+            // Add other properties if needed, e.g., structured_formatting, terms, types
+          };
+        };
+      };
+    };
+  }
+  // Minimal interfaces for Google Maps Places services, matching usage in the component
+  interface AutocompleteService {
+    getPlacePredictions(
+      request: {
+        input: string;
+        componentRestrictions?: { country: string | string[] };
+        types?: string[];
+      },
+      callback: (
+        predictions: AutocompletePrediction[] | null,
+        status: string,
+      ) => void,
+    ): void;
+  }
+
+  interface PlacesService {
+    getDetails(
+      request: { placeId: string },
+      callback: (place: PlaceResult | null, status: string) => void,
+    ): void;
+  }
+
+  interface AutocompletePrediction {
+    description: string;
+    place_id: string;
+  }
+
+  interface PlaceResult {
+    formatted_address?: string;
+    // Add other properties if needed, e.g., geometry, name, photos, rating
+  }
+}
 
 interface HomePageProps {
   onNavigate: (page: Page) => void;
@@ -16,6 +71,119 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
   // Local state for temporary item input before adding to context
   const [newItem, setNewItem] = useState<Omit<BookingItem, 'id'>>({ name: '', color: '', size: '', description: '' });
+
+  // State for Google Places Autocomplete
+  const [autocompleteService, setAutocompleteService] = useState<AutocompleteService | null>(null);
+  const [placesService, setPlacesService] = useState<PlacesService | null>(null);
+  const [pickupSuggestions, setPickupSuggestions] = useState<AutocompletePrediction[]>([]);
+  const [deliverySuggestions, setDeliverySuggestions] = useState<AutocompletePrediction[]>([]);
+  const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
+  const [showDeliverySuggestions, setShowDeliverySuggestions] = useState(false);
+
+  // Refs for suggestion lists to handle blur events correctly
+  const pickupSuggestionsRef = useRef<HTMLUListElement>(null);
+  const deliverySuggestionsRef = useRef<HTMLUListElement>(null);
+  const pickupInputRef = useRef<HTMLInputElement>(null);
+  const deliveryInputRef = useRef<HTMLInputElement>(null);
+
+
+  // Initialize Google Places services
+  useEffect(() => {
+    if (window.google && window.google.maps && window.google.maps.places) {
+      setAutocompleteService(new window.google.maps.places.AutocompleteService());
+      // PlacesService requires a map or div element, we can use a dummy div
+      setPlacesService(new window.google.maps.places.PlacesService(document.createElement('div')));
+    } else {
+      console.warn("Google Maps Places API not loaded. Address auto-completion will be unavailable.");
+    }
+  }, []);
+
+  const fetchSuggestions = useCallback((
+    input: string,
+    type: 'pickup' | 'delivery',
+    setSuggestions: React.Dispatch<React.SetStateAction<AutocompletePrediction[]>>
+  ) => {
+    if (!autocompleteService || !input) {
+      setSuggestions([]);
+      return;
+    }
+
+    autocompleteService.getPlacePredictions(
+      { input, componentRestrictions: { country: 'us' }, types: ['address'] }, // Restrict to US addresses
+      (predictions, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setSuggestions(predictions);
+          if (type === 'pickup') setShowPickupSuggestions(true);
+          else setShowDeliverySuggestions(true);
+        } else {
+          setSuggestions([]);
+          if (type === 'pickup') setShowPickupSuggestions(false);
+          else setShowDeliverySuggestions(false);
+        }
+      }
+    );
+  }, [autocompleteService]);
+
+  const handleSuggestionClick = useCallback((
+    placeId: string,
+    description: string,
+    type: 'pickup' | 'delivery',
+    setSuggestions: React.Dispatch<React.SetStateAction<AutocompletePrediction[]>>
+  ) => {
+    if (!placesService) return;
+
+    placesService.getDetails({ placeId }, (place, status) => {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && place && place.formatted_address) {
+        if (type === 'pickup') {
+          updateBookingDetails({ pickupAddress: place.formatted_address });
+          setShowPickupSuggestions(false);
+        } else {
+          updateBookingDetails({ deliveryAddress: place.formatted_address });
+          setShowDeliverySuggestions(false);
+        }
+        setSuggestions([]); // Clear suggestions after selection
+      } else {
+        console.error("Error fetching place details:", status);
+        // Fallback to description if details fail
+        if (type === 'pickup') {
+          updateBookingDetails({ pickupAddress: description });
+          setShowPickupSuggestions(false);
+        } else {
+          updateBookingDetails({ deliveryAddress: description });
+          setShowDeliverySuggestions(false);
+        }
+      }
+    });
+  }, [placesService, updateBookingDetails]);
+
+  const handleBookingDetailsInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    updateBookingDetails({ [name]: value });
+
+    // Trigger autocomplete for address fields
+    if (name === 'pickupAddress') {
+      fetchSuggestions(value, 'pickup', setPickupSuggestions);
+    } else if (name === 'deliveryAddress') {
+      fetchSuggestions(value, 'delivery', setDeliverySuggestions);
+    }
+  };
+
+  const handleFocus = (type: 'pickup' | 'delivery') => {
+    if (type === 'pickup' && pickupSuggestions.length > 0) setShowPickupSuggestions(true);
+    if (type === 'delivery' && deliverySuggestions.length > 0) setShowDeliverySuggestions(true);
+  };
+
+  const handleBlur = (type: 'pickup' | 'delivery', event: React.FocusEvent<HTMLInputElement>) => {
+    // Delay hiding to allow click on suggestions
+    setTimeout(() => {
+      if (type === 'pickup' && !pickupSuggestionsRef.current?.contains(document.activeElement)) {
+        setShowPickupSuggestions(false);
+      }
+      if (type === 'delivery' && !deliverySuggestionsRef.current?.contains(document.activeElement)) {
+        setShowDeliverySuggestions(false);
+      }
+    }, 100);
+  };
 
   const handleServiceTypeChange = (serviceType: ServiceType) => {
     updateBookingDetails({ serviceType });
@@ -51,11 +219,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
   const handleUpdateItem = (id: string, field: keyof Omit<BookingItem, 'id'>, value: string) => {
     updateBookingItem(id, { [field]: value });
-  };
-
-  const handleBookingDetailsInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    updateBookingDetails({ [name]: value });
   };
 
   // Validation for Step 2 fields
@@ -314,14 +477,94 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         <section id="schedule-delivery-section" className="mb-12 animate-fade-in-up bg-white p-6 rounded-lg shadow-md border border-gray-200">
           <h3 className="text-2xl font-bold text-secondary-dark mb-6 text-center">Step 5: Schedule Your {bookingDetails.serviceType === ServiceType.DELIVERY ? 'Delivery' : 'Removal'}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="col-span-full">
+            <div className="col-span-full relative">
               <label htmlFor="pickupAddress" className="block text-sm font-medium text-gray-700 mb-1">{bookingDetails.serviceType === ServiceType.DELIVERY ? 'Pickup Address' : 'Removal Address'} <span className="text-accent-red">*</span></label>
-              <input type="text" name="pickupAddress" id="pickupAddress" value={bookingDetails.pickupAddress} onChange={handleBookingDetailsInputChange} required className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue" placeholder="e.g., 123 Main St, San Diego, CA"/>
+              <input
+                ref={pickupInputRef}
+                type="text"
+                name="pickupAddress"
+                id="pickupAddress"
+                value={bookingDetails.pickupAddress}
+                onChange={handleBookingDetailsInputChange}
+                onFocus={() => handleFocus('pickup')}
+                onBlur={(e) => handleBlur('pickup', e)}
+                required
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
+                placeholder="e.g., 123 Main St, San Diego, CA"
+                aria-autocomplete="list"
+                aria-controls="pickup-suggestions"
+              />
+              {showPickupSuggestions && pickupSuggestions.length > 0 && (
+                <ul
+                  id="pickup-suggestions"
+                  ref={pickupSuggestionsRef}
+                  role="listbox"
+                  className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto"
+                >
+                  {pickupSuggestions.map((suggestion) => (
+                    <li
+                      key={suggestion.place_id}
+                      role="option"
+                      aria-selected={false}
+                      tabIndex={0}
+                      className="p-2 cursor-pointer hover:bg-light-gray text-secondary-dark"
+                      onClick={() => handleSuggestionClick(suggestion.place_id, suggestion.description, 'pickup', setPickupSuggestions)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSuggestionClick(suggestion.place_id, suggestion.description, 'pickup', setPickupSuggestions);
+                        }
+                      }}
+                    >
+                      {suggestion.description}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             {bookingDetails.serviceType === ServiceType.DELIVERY && (
-               <div className="col-span-full">
+               <div className="col-span-full relative">
                 <label htmlFor="deliveryAddress" className="block text-sm font-medium text-gray-700 mb-1">Delivery Address <span className="text-accent-red">*</span></label>
-                <input type="text" name="deliveryAddress" id="deliveryAddress" value={bookingDetails.deliveryAddress} onChange={handleBookingDetailsInputChange} required className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue" placeholder="e.g., 456 Elm Ave, San Diego, CA"/>
+                <input
+                  ref={deliveryInputRef}
+                  type="text"
+                  name="deliveryAddress"
+                  id="deliveryAddress"
+                  value={bookingDetails.deliveryAddress}
+                  onChange={handleBookingDetailsInputChange}
+                  onFocus={() => handleFocus('delivery')}
+                  onBlur={(e) => handleBlur('delivery', e)}
+                  required
+                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue"
+                  placeholder="e.g., 456 Elm Ave, San Diego, CA"
+                  aria-autocomplete="list"
+                  aria-controls="delivery-suggestions"
+                />
+                {showDeliverySuggestions && deliverySuggestions.length > 0 && (
+                  <ul
+                    id="delivery-suggestions"
+                    ref={deliverySuggestionsRef}
+                    role="listbox"
+                    className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto"
+                  >
+                    {deliverySuggestions.map((suggestion) => (
+                      <li
+                        key={suggestion.place_id}
+                        role="option"
+                        aria-selected={false}
+                        tabIndex={0}
+                        className="p-2 cursor-pointer hover:bg-light-gray text-secondary-dark"
+                        onClick={() => handleSuggestionClick(suggestion.place_id, suggestion.description, 'delivery', setDeliverySuggestions)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleSuggestionClick(suggestion.place_id, suggestion.description, 'delivery', setDeliverySuggestions);
+                          }
+                        }}
+                      >
+                        {suggestion.description}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
             <div>
