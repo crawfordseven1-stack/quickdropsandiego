@@ -6,11 +6,29 @@
     <title>QuickDrop SD</title>
 
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+
+    <!-- Tailwind CDN + custom color config -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              "primary-blue": "#2563EB",
+              "secondary-dark": "#1F2937",
+              "light-gray": "#F3F4F6",
+              "accent-green": "#10B981",
+              "accent-red": "#EF4444"
+            }
+          }
+        }
+      };
+    </script>
   </head>
   <body class="bg-light-gray font-sans antialiased text-secondary-dark">
     <div id="root"></div>
 
-    <!-- Optional: Google Maps script. You can leave this or comment it out for now. -->
+    <!-- Optional: Google Maps script if/when you're ready -->
     <!--
     <script
       src="https://maps.googleapis.com/maps/api/js?key=YOUR_VALID_GOOGLE_MAPS_API_KEY_HERE&libraries=places&loading=async"
@@ -19,7 +37,7 @@
     ></script>
     -->
 
-    <!-- IMPORTANT: entry must match the actual file in your repo -->
+    <!-- React entry file -->
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
