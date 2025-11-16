@@ -1,43 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>QuickDrop SD</title>
+    <title>Quick Drop SD</title>
 
-    <!-- Favicon from Vite template -->
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+</head>
 
-    <!-- Tailwind CDN (only if you're NOT using Tailwind via build tooling) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              'primary-blue': '#2563EB',
-              'secondary-dark': '#1F2937',
-              'light-gray': '#F3F4F6',
-              'accent-green': '#10B981',
-              'accent-red': '#EF4444',
-            },
-          },
-        },
-      };
-    </script>
-  </head>
-
-  <body class="bg-light-gray font-sans antialiased text-secondary-dark">
+<body class="bg-light-gray font-sans antialiased text-secondary-dark">
     <div id="root"></div>
 
-    <!-- Optional: Google Maps (replace key with a real one before going live) -->
-    <script
-      src="https://maps.googleapis.com/maps/api/js?key=YOUR_VALID_GOOGLE_MAPS_API_KEY_HERE&libraries=places&loading=async"
-      async
-      defer
-    ></script>
+    <script 
+        src="https://maps.googleapis.com/maps/api/js?key=YOUR_VALID_GOOGLE_MAPS_API_KEY_HERE&libraries=places&loading=async" 
+        async defer>
+    </script>
 
-    <!-- Vite entry point -->
-    <script type="module" src="/index.tsx"></script>
-  </body>
+    <script type="module" src="/src/main.tsx"></script>
+</body>
 </html>
