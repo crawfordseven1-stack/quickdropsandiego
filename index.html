@@ -1,42 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuickDrop SD</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              'primary-blue': '#2563EB',
-              'secondary-dark': '#1F2937',
-              'light-gray': '#F3F4F6',
-              'accent-green': '#10B981',
-              'accent-red': '#EF4444',
-            }
-          }
-        }
-      }
-    </script>
-    <!-- Google Maps API (Placeholder for future integration, key would be added here) -->
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places"></script>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quick Drop SD</title>
 
-<script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "uuid": "https://aistudiocdn.com/uuid@^13.0.0"
-  }
-}
-</script>
-</head>
-<body class="bg-light-gray font-sans antialiased text-secondary-dark">
+    </head>
+<body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+
+    <script 
+        src="https://maps.googleapis.com/maps/api/js?key=YOUR_VALID_GOOGLE_MAPS_API_KEY_HERE&libraries=places&loading=async" 
+        async defer>
+    </script>
+    
+    <script type="module" src="/src/main.tsx"></script> 
 </body>
 </html>
