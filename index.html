@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quick Drop SD</title>
+    <title>QuickDrop SD</title>
 
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-</head>
-
-<body class="bg-light-gray font-sans antialiased text-secondary-dark">
+  </head>
+  <body class="bg-light-gray font-sans antialiased text-secondary-dark">
     <div id="root"></div>
 
-    <script 
-        src="https://maps.googleapis.com/maps/api/js?key=YOUR_VALID_GOOGLE_MAPS_API_KEY_HERE&libraries=places&loading=async" 
-        async defer>
-    </script>
+    <!-- Optional: Google Maps script. You can leave this or comment it out for now. -->
+    <!--
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=YOUR_VALID_GOOGLE_MAPS_API_KEY_HERE&libraries=places&loading=async"
+      async
+      defer
+    ></script>
+    -->
 
-    <script type="module" src="/src/main.tsx"></script>
-</body>
+    <!-- IMPORTANT: entry must match the actual file in your repo -->
+    <script type="module" src="/index.tsx"></script>
+  </body>
 </html>
